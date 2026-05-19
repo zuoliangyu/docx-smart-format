@@ -1,0 +1,142 @@
+{
+  "document": {
+    "title": "DOCX Smart Format 示例文档",
+    "author": "Codex",
+    "pageWidth": "11906",
+    "pageHeight": "16838",
+    "orientation": "portrait",
+    "marginTop": "1440",
+    "marginBottom": "1440",
+    "marginLeft": "1800",
+    "marginRight": "1800"
+  },
+  "headers": [
+    {
+      "type": "default",
+      "paragraphs": [
+        {
+          "style": "Header",
+          "align": "center",
+          "runs": [
+            {
+              "text": "DOCX Smart Format"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "footers": [
+    {
+      "type": "default",
+      "paragraphs": [
+        {
+          "style": "Footer",
+          "align": "center",
+          "pageNumberField": true,
+          "runs": [
+            {
+              "text": "第\t"
+            },
+            {
+              "text": ""
+            },
+            {
+              "text": "\t页"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "body": [
+    {
+      "kind": "heading",
+      "paragraph": {
+        "style": "Heading1",
+        "headingLevel": 1,
+        "align": "center",
+        "runs": [
+          {
+            "text": "智能格式化生成示例",
+            "bold": true,
+            "fontSize": "16",
+            "eastAsiaFont": "黑体",
+            "asciiFont": "Times New Roman"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "paragraph",
+      "paragraph": {
+        "style": "Normal",
+        "align": "both",
+        "paragraph": {
+          "firstLineChars": "200",
+          "lineSpacing": "360",
+          "lineSpacingRule": "auto"
+        },
+        "runs": [
+          {
+            "text": "这是一个由本地技能直接生成的新 Word 文档。"
+          },
+          {
+            "text": "DOCX Smart Format",
+            "bold": true
+          },
+          {
+            "text": " 可以不依赖源文档，直接调用字体、字号、加粗、页眉页脚、页码、分节、表格、图片和公式等基础能力输出 docx。"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "paragraph",
+      "paragraph": {
+        "style": "Normal",
+        "align": "both",
+        "paragraph": {
+          "firstLineChars": "200",
+          "lineSpacing": "360",
+          "lineSpacingRule": "auto"
+        },
+        "runs": [
+          {
+            "text": "化学式如 H"
+          },
+          {
+            "text": "2",
+            "verticalAlign": "subscript"
+          },
+          {
+            "text": "O，面积单位如 m"
+          },
+          {
+            "text": "2",
+            "verticalAlign": "superscript"
+          },
+          {
+            "text": "，都可以直接写回到 docx。"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "equation",
+      "equation": {
+        "xml": "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>E=mc^2</m:t></m:r></m:oMath></m:oMathPara>"
+      }
+    },
+    {
+      "kind": "table",
+      "table": {
+        "rows": [
+          ["能力", "状态"],
+          ["读取并重排现有文档", "支持"],
+          ["直接生成新 docx", "支持"]
+        ]
+      }
+    }
+  ]
+}

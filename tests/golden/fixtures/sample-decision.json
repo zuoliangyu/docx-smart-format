@@ -1,0 +1,212 @@
+{
+  "docType": "academic-thesis",
+  "templateId": "academic-thesis",
+  "confidence": 0.93,
+  "documentRules": {
+    "headerStyleKey": null,
+    "footerStyleKey": null,
+    "pageNumberScheme": "decimal",
+    "useTemplateHeaders": false,
+    "useTemplateFooters": false,
+    "oddEvenDifferent": true,
+    "firstPageDifferent": false,
+    "headerPolicy": "override",
+    "footerPolicy": "override",
+    "pageNumberPolicy": "roman-then-arabic"
+  },
+  "blockDecisions": [
+    {
+      "path": "/body/paragraph[1]",
+      "kind": "paragraph",
+      "semanticRole": "heading1",
+      "targetStyleKey": "template.heading1",
+      "blockId": "b0001",
+      "applyStyleKey": "template.heading1",
+      "align": "center",
+      "pageBreakBefore": true,
+      "beforeSpacing": "240",
+      "afterSpacing": "120",
+      "lineSpacing": "400",
+      "lineSpacingRule": "exact",
+      "fontSize": "32",
+      "eastAsiaFont": "黑体",
+      "asciiFont": "Times New Roman",
+      "bold": true
+    },
+    {
+      "path": "/body/paragraph[2]",
+      "kind": "paragraph",
+      "semanticRole": "body",
+      "targetStyleKey": "template.body",
+      "blockId": "b0002",
+      "applyStyleKey": "template.body",
+      "align": "both",
+      "firstLineChars": "200",
+      "beforeSpacing": "0",
+      "afterSpacing": "0",
+      "lineSpacing": "360",
+      "lineSpacingRule": "exact",
+      "fontSize": "24",
+      "eastAsiaFont": "宋体",
+      "asciiFont": "Times New Roman"
+    },
+    {
+      "path": "/body/paragraph[3]",
+      "kind": "paragraph",
+      "semanticRole": "reference",
+      "targetStyleKey": "template.reference",
+      "blockId": "b0003",
+      "applyStyleKey": "template.reference",
+      "align": "both",
+      "hangingChars": "200",
+      "lineSpacing": "320",
+      "lineSpacingRule": "exact",
+      "fontSize": "21",
+      "eastAsiaFont": "宋体",
+      "asciiFont": "Times New Roman"
+    }
+  ],
+  "sectionDecisions": [
+    {
+      "afterBlockId": "frontMatter.end",
+      "sectionType": "nextPage",
+      "orientation": "portrait",
+      "headerDecisionKeys": [
+        "frontMatter.header.empty",
+        "frontMatter.header.empty.even"
+      ],
+      "footerDecisionKey": "frontMatter.footer.roman",
+      "pgNumType": {
+        "format": "upperRoman",
+        "start": 1
+      }
+    },
+    {
+      "afterBlockId": "b0001",
+      "sectionType": "nextPage",
+      "orientation": "portrait",
+      "headerDecisionKeys": [
+        "body.header.title",
+        "body.header.styleRef"
+      ],
+      "footerDecisionKey": "body.footer.page",
+      "pgNumType": {
+        "format": "decimal",
+        "start": 1
+      }
+    }
+  ],
+  "headerFooterDecisions": [
+    {
+      "decisionKey": "frontMatter.header.empty",
+      "kind": "header",
+      "type": "default",
+      "action": "clear"
+    },
+    {
+      "decisionKey": "frontMatter.header.empty.even",
+      "kind": "header",
+      "type": "even",
+      "action": "clear"
+    },
+    {
+      "decisionKey": "body.header.title",
+      "kind": "header",
+      "type": "default",
+      "action": "replace",
+      "sourcePath": "header-body-odd.xml"
+    },
+    {
+      "decisionKey": "body.header.styleRef",
+      "kind": "header",
+      "type": "even",
+      "action": "replace",
+      "sourcePath": "header-body-even.xml"
+    },
+    {
+      "decisionKey": "frontMatter.footer.roman",
+      "kind": "footer",
+      "type": "default",
+      "action": "replace",
+      "sourcePath": "footer-front-roman.xml"
+    },
+    {
+      "decisionKey": "body.footer.page",
+      "kind": "footer",
+      "type": "default",
+      "action": "replace",
+      "sourcePath": "footer-body-page.xml"
+    }
+  ],
+  "captionDecisions": [],
+  "runDecisions": [
+    {
+      "runPath": "/body/paragraph[2]/run[1]",
+      "blockId": "b0002",
+      "matchText": "关键词",
+      "fontSize": "24",
+      "eastAsiaFont": "黑体",
+      "asciiFont": "Times New Roman",
+      "bold": true,
+      "verticalAlign": "baseline"
+    },
+    {
+      "runPath": "/body/paragraph[2]/run[2]",
+      "blockId": "b0002",
+      "matchText": "H2O",
+      "replaceText": "H2O",
+      "fontSize": "24",
+      "eastAsiaFont": "宋体",
+      "asciiFont": "Times New Roman"
+    },
+    {
+      "runPath": "/body/paragraph[2]/run[2]",
+      "blockId": "b0002",
+      "segmentText": "2",
+      "replaceSegmentText": "2",
+      "verticalAlign": "subscript"
+    },
+    {
+      "runPath": "/body/paragraph[2]/run[3]",
+      "blockId": "b0002",
+      "matchText": "x2",
+      "replaceText": "x2",
+      "fontSize": "24",
+      "eastAsiaFont": "Times New Roman",
+      "asciiFont": "Times New Roman"
+    },
+    {
+      "runPath": "/body/paragraph[2]/run[3]",
+      "blockId": "b0002",
+      "segmentText": "2",
+      "replaceSegmentText": "2",
+      "verticalAlign": "superscript"
+    },
+    {
+      "runPath": "/body/paragraph[2]/run[4]",
+      "blockId": "b0002",
+      "matchText": "姓名：张三 学号：20250001",
+      "replaceText": "姓名：\t张三\t学号：\t20250001",
+      "fontSize": "24",
+      "eastAsiaFont": "宋体",
+      "asciiFont": "Times New Roman"
+    },
+    {
+      "runPath": "/body/paragraph[2]/run[5]",
+      "blockId": "b0002",
+      "matchText": "Important",
+      "italic": true,
+      "underline": "single",
+      "fontColor": "C00000"
+    }
+  ],
+  "equationDecisions": [
+    {
+      "path": "/body/equation[1.1]",
+      "kind": "equation",
+      "semanticRole": "equation",
+      "targetStyleKey": "template.equation"
+    }
+  ],
+  "assetDecisions": []
+}

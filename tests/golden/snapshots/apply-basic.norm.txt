@@ -1,0 +1,294 @@
+=== CASE apply-basic
+exit 0
+--- stderr
+
+--- stdout
+
+--- artifact applied.docx
+### ENTRY [Content_Types].xml
+<?xml version="1.0" encoding="utf-16"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml" />
+  <Default Extension="psmdcp" ContentType="application/vnd.openxmlformats-package.core-properties+xml" />
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml" />
+  <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml" />
+</Types>
+### ENTRY _rels/.rels
+<?xml version="1.0" encoding="utf-16"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="/word/document.xml" Id="R__1" />
+  <Relationship Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="/package/services/metadata/core-properties/<PKGCORE>.psmdcp" Id="R__2" />
+</Relationships>
+### ENTRY package/services/metadata/core-properties/<PKGCORE>.psmdcp
+<binary len=375 sha=6482c183185154d5f467a8df147eadfa54b3234953a521d66c9160d52c4c46f6>
+### ENTRY word/_rels/document.xml.rels
+<?xml version="1.0" encoding="utf-16"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="/word/settings.xml" Id="R__3" />
+</Relationships>
+### ENTRY word/document.xml
+<?xml version="1.0" encoding="utf-16"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading1" />
+        <w:outlineLvl w:val="0" />
+        <w:jc w:val="center" />
+        <w:spacing w:before="240" w:after="120" w:line="400" w:lineRule="exact" />
+        <w:pageBreakBefore />
+        <w:sectPr>
+          <w:pgSz w:w="11906" w:h="16838" w:orient="portrait" />
+          <w:pgMar w:top="1440" w:right="1800" w:bottom="1440" w:left="1800" />
+          <w:pgNumType w:fmt="decimal" w:start="1" />
+          <w:type w:val="continuous" />
+        </w:sectPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="黑体" w:cs="黑体" />
+          <w:b />
+          <w:sz w:val="32" />
+          <w:szCs w:val="32" />
+        </w:rPr>
+        <w:t xml:space="preserve">智能格式化生成示例</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Normal" />
+        <w:jc w:val="both" />
+        <w:ind w:firstLineChars="200" />
+        <w:spacing w:before="0" w:after="0" w:line="360" w:lineRule="exact" />
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="黑体" w:cs="黑体" />
+          <w:b />
+          <w:vertAlign w:val="baseline" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">这是一个由本地技能直接生成的新 Word 文档。</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:vertAlign w:val="subscript" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">H2O</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="Times New Roman" w:cs="Times New Roman" />
+          <w:vertAlign w:val="superscript" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">x2</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Reference" />
+        <w:jc w:val="both" />
+        <w:ind w:left="0" w:right="0" w:hangingChars="200" w:firstLineChars="0" />
+        <w:spacing w:before="0" w:after="0" w:line="320" w:lineRule="exact" />
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="21" />
+          <w:szCs w:val="21" />
+        </w:rPr>
+        <w:t xml:space="preserve">化学式如 H</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="21" />
+          <w:szCs w:val="21" />
+        </w:rPr>
+        <w:t xml:space="preserve">2</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="21" />
+          <w:szCs w:val="21" />
+        </w:rPr>
+        <w:t xml:space="preserve">O，面积单位如 m</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="21" />
+          <w:szCs w:val="21" />
+        </w:rPr>
+        <w:t xml:space="preserve">2</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="21" />
+          <w:szCs w:val="21" />
+        </w:rPr>
+        <w:t xml:space="preserve">，都可以直接写回到 docx。</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:jc w:val="center" />
+        <w:spacing w:before="160" w:after="160" />
+      </w:pPr>
+      <m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">
+        <m:oMath>
+          <m:r>
+            <m:t>E=mc^2</m:t>
+          </m:r>
+        </m:oMath>
+      </m:oMathPara>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:w="5000" w:type="pct" />
+        <w:jc w:val="center" />
+        <w:tblBorders>
+          <w:top w:val="single" w:sz="12" />
+          <w:bottom w:val="single" w:sz="12" />
+          <w:left w:val="none" w:sz="0" />
+          <w:right w:val="none" w:sz="0" />
+          <w:insideH w:val="none" w:sz="0" />
+          <w:insideV w:val="none" w:sz="0" />
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="auto" />
+            <w:tcBorders>
+              <w:bottom w:val="single" w:sz="6" />
+            </w:tcBorders>
+          </w:tcPr>
+          <w:p>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+                <w:b />
+                <w:sz w:val="24" />
+                <w:szCs w:val="24" />
+              </w:rPr>
+              <w:t xml:space="preserve">能力</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="auto" />
+            <w:tcBorders>
+              <w:bottom w:val="single" w:sz="6" />
+            </w:tcBorders>
+          </w:tcPr>
+          <w:p>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+                <w:b />
+                <w:sz w:val="24" />
+                <w:szCs w:val="24" />
+              </w:rPr>
+              <w:t xml:space="preserve">状态</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="auto" />
+          </w:tcPr>
+          <w:p>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+                <w:sz w:val="24" />
+                <w:szCs w:val="24" />
+              </w:rPr>
+              <w:t xml:space="preserve">读取并重排现有文档</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="auto" />
+          </w:tcPr>
+          <w:p>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+                <w:sz w:val="24" />
+                <w:szCs w:val="24" />
+              </w:rPr>
+              <w:t xml:space="preserve">支持</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="auto" />
+          </w:tcPr>
+          <w:p>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+                <w:sz w:val="24" />
+                <w:szCs w:val="24" />
+              </w:rPr>
+              <w:t xml:space="preserve">直接生成新 docx</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="auto" />
+          </w:tcPr>
+          <w:p>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+                <w:sz w:val="24" />
+                <w:szCs w:val="24" />
+              </w:rPr>
+              <w:t xml:space="preserve">支持</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:pPr>
+        <w:sectPr>
+          <w:pgSz w:w="11906" w:h="16838" w:orient="portrait" />
+          <w:pgMar w:top="1440" w:right="1800" w:bottom="1440" w:left="1800" />
+          <w:type w:val="nextPage" />
+        </w:sectPr>
+      </w:pPr>
+      <w:r />
+    </w:p>
+    <w:sectPr>
+      <w:pgSz w:w="11906" w:h="16838" w:orient="portrait" />
+      <w:pgMar w:top="1440" w:right="1800" w:bottom="1440" w:left="1800" />
+      <w:type w:val="nextPage" />
+    </w:sectPr>
+  </w:body>
+</w:document>
+### ENTRY word/settings.xml
+<?xml version="1.0" encoding="utf-16"?>
+<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:evenAndOddHeaders />
+</w:settings>
+

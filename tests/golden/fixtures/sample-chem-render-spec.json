@@ -1,0 +1,56 @@
+{
+  "document": {
+    "title": "化学式与公式测试",
+    "author": "Codex",
+    "pageWidth": "11906",
+    "pageHeight": "16838",
+    "orientation": "portrait",
+    "marginTop": "1440",
+    "marginBottom": "1440",
+    "marginLeft": "1800",
+    "marginRight": "1800"
+  },
+  "body": [
+    {
+      "kind": "paragraph",
+      "paragraph": {
+        "style": "Normal",
+        "align": "both",
+        "paragraph": {
+          "firstLineChars": "200",
+          "lineSpacing": "360",
+          "lineSpacingRule": "auto"
+        },
+        "runs": [
+          {
+            "text": "自动识别化学式：H2O、CO2、Fe3+、SO4^2-、Ca(OH)2。"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "paragraph",
+      "paragraph": {
+        "style": "Normal",
+        "align": "both",
+        "paragraph": {
+          "firstLineChars": "200",
+          "lineSpacing": "360",
+          "lineSpacingRule": "auto"
+        },
+        "runs": [
+          {
+            "text": "自动识别单位指数：m2、cm3、μm2、m^2、x_i、a_n。"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "equation",
+      "equation": {
+        "text": "E = mc^2",
+        "displayMode": "display"
+      }
+    }
+  ]
+}

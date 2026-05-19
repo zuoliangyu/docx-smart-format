@@ -51,3 +51,6 @@ scratch/
 # Output artifacts from running the skill locally
 *.result.docx
 analysis.json.tmp
+
+# Golden harness scratch (snapshots ARE committed; .work is not)
+tests/golden/.work/

@@ -1,0 +1,1249 @@
+=== CASE analyze-basic
+exit 0
+--- stderr
+
+--- stdout
+
+--- artifact basic-analysis.json
+{
+  "sourceFile": "E:\\zuolan_lib\\EF\\docx-smart-format\\tests\\golden\\.work\\basic.docx",
+  "document": {
+    "title": "DOCX Smart Format 示例文档",
+    "author": "Codex",
+    "pageWidth": "11906",
+    "pageHeight": "16838",
+    "orientation": "portrait",
+    "marginTop": "1440",
+    "marginBottom": "1440",
+    "marginLeft": "1800",
+    "marginRight": "1800",
+    "sectionCount": 1,
+    "headerCount": 1,
+    "footerCount": 1
+  },
+  "sections": [
+    {
+      "path": "/section[1]",
+      "type": null,
+      "pageWidth": "11906",
+      "pageHeight": "16838",
+      "orientation": "portrait",
+      "pageStart": null,
+      "pageNumFmt": null,
+      "headerRef": "default:R__1",
+      "footerRef": "default:R__2",
+      "headerSourceRefs": "default:R__1",
+      "footerSourceRefs": "default:R__2",
+      "titlePage": false,
+      "marginTop": "1440",
+      "marginBottom": "1440",
+      "marginLeft": "1800",
+      "marginRight": "1800"
+    }
+  ],
+  "headers": [
+    {
+      "path": "/word/header1.xml",
+      "relationshipId": "R__1",
+      "kind": "header",
+      "type": "default",
+      "paragraphs": [
+        {
+          "path": "/header/default/paragraph[1]",
+          "text": "DOCX Smart Format",
+          "style": "Header",
+          "align": "center",
+          "run": {
+            "fontSize": null,
+            "asciiFont": null,
+            "eastAsiaFont": null,
+            "bold": false,
+            "italic": false,
+            "underline": null,
+            "fontColor": null,
+            "highlight": null,
+            "verticalAlign": null
+          }
+        }
+      ],
+      "containsPageField": false,
+      "containsNumPagesField": false
+    }
+  ],
+  "footers": [
+    {
+      "path": "/word/footer1.xml",
+      "relationshipId": "R__2",
+      "kind": "footer",
+      "type": "default",
+      "paragraphs": [
+        {
+          "path": "/footer/default/paragraph[1]",
+          "text": "第页",
+          "style": "Footer",
+          "align": "center",
+          "run": {
+            "fontSize": null,
+            "asciiFont": null,
+            "eastAsiaFont": null,
+            "bold": false,
+            "italic": false,
+            "underline": null,
+            "fontColor": null,
+            "highlight": null,
+            "verticalAlign": null
+          }
+        }
+      ],
+      "containsPageField": true,
+      "containsNumPagesField": false
+    }
+  ],
+  "body": [
+    {
+      "path": "/body/paragraph[1]",
+      "kind": "paragraph",
+      "text": "智能格式化生成示例",
+      "style": "Heading1",
+      "headingLevel": 1,
+      "sectionIndex": 1,
+      "pageBreakBefore": false,
+      "containsSectionBreak": false,
+      "outlineRole": "heading1",
+      "paragraph": {
+        "align": "center",
+        "pageBreakBefore": false,
+        "leftIndent": null,
+        "rightIndent": null,
+        "firstLineIndent": null,
+        "firstLineChars": null,
+        "hangingIndent": null,
+        "hangingChars": null,
+        "beforeSpacing": null,
+        "afterSpacing": null,
+        "lineSpacing": null,
+        "lineSpacingRule": null,
+        "tabStops": []
+      },
+      "run": {
+        "fontSize": "36",
+        "asciiFont": "Times New Roman",
+        "eastAsiaFont": "宋体",
+        "bold": true,
+        "italic": false,
+        "underline": null,
+        "fontColor": null,
+        "highlight": null,
+        "verticalAlign": null
+      },
+      "runs": [
+        {
+          "path": "/body/paragraph[1]/run[1]",
+          "text": "智能格式化生成示例",
+          "format": {
+            "fontSize": "36",
+            "asciiFont": "Times New Roman",
+            "eastAsiaFont": "宋体",
+            "bold": true,
+            "italic": false,
+            "underline": null,
+            "fontColor": null,
+            "highlight": null,
+            "verticalAlign": null
+          },
+          "segments": [
+            {
+              "path": "/body/paragraph[1]/run[1]/segment[1]",
+              "text": "智能格式化生成示例",
+              "format": {
+                "fontSize": "36",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": true,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            }
+          ],
+          "kind": null,
+          "bookmarkName": null,
+          "bookmarkId": null,
+          "fieldInstruction": null,
+          "fieldDisplayText": null
+        }
+      ],
+      "hasImage": false,
+      "hasTable": false,
+      "hasEquation": false,
+      "tableRows": [],
+      "image": null,
+      "equation": null
+    },
+    {
+      "path": "/body/paragraph[2]",
+      "kind": "paragraph",
+      "text": "这是一个由本地技能直接生成的新 Word 文档。DOCX Smart Format 可以不依赖源文档，直接调用字体、字号、加粗、页眉页脚、页码、分节、表格、图片和公式等基础能力输出 docx。",
+      "style": "Normal",
+      "headingLevel": null,
+      "sectionIndex": 1,
+      "pageBreakBefore": false,
+      "containsSectionBreak": false,
+      "outlineRole": "paragraph",
+      "paragraph": {
+        "align": "both",
+        "pageBreakBefore": false,
+        "leftIndent": null,
+        "rightIndent": null,
+        "firstLineIndent": null,
+        "firstLineChars": "200",
+        "hangingIndent": null,
+        "hangingChars": null,
+        "beforeSpacing": null,
+        "afterSpacing": null,
+        "lineSpacing": "360",
+        "lineSpacingRule": "auto",
+        "tabStops": []
+      },
+      "run": {
+        "fontSize": "24",
+        "asciiFont": "Times New Roman",
+        "eastAsiaFont": "宋体",
+        "bold": false,
+        "italic": false,
+        "underline": null,
+        "fontColor": null,
+        "highlight": null,
+        "verticalAlign": null
+      },
+      "runs": [
+        {
+          "path": "/body/paragraph[2]/run[1]",
+          "text": "这是一个由本地技能直接生成的新 Word 文档。",
+          "format": {
+            "fontSize": "24",
+            "asciiFont": "Times New Roman",
+            "eastAsiaFont": "宋体",
+            "bold": false,
+            "italic": false,
+            "underline": null,
+            "fontColor": null,
+            "highlight": null,
+            "verticalAlign": null
+          },
+          "segments": [
+            {
+              "path": "/body/paragraph[2]/run[1]/segment[1]",
+              "text": "这是一个由本地技能直接生成的新",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[1]/segment[2]",
+              "text": " ",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[1]/segment[3]",
+              "text": "Word",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[1]/segment[4]",
+              "text": " ",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[1]/segment[5]",
+              "text": "文档",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[1]/segment[6]",
+              "text": "。",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            }
+          ],
+          "kind": null,
+          "bookmarkName": null,
+          "bookmarkId": null,
+          "fieldInstruction": null,
+          "fieldDisplayText": null
+        },
+        {
+          "path": "/body/paragraph[2]/run[2]",
+          "text": "DOCX Smart Format",
+          "format": {
+            "fontSize": "24",
+            "asciiFont": "Times New Roman",
+            "eastAsiaFont": "宋体",
+            "bold": false,
+            "italic": false,
+            "underline": null,
+            "fontColor": null,
+            "highlight": null,
+            "verticalAlign": null
+          },
+          "segments": [
+            {
+              "path": "/body/paragraph[2]/run[2]/segment[1]",
+              "text": "DOCX",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[2]/segment[2]",
+              "text": " ",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[2]/segment[3]",
+              "text": "Smart",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[2]/segment[4]",
+              "text": " ",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[2]/segment[5]",
+              "text": "Format",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            }
+          ],
+          "kind": null,
+          "bookmarkName": null,
+          "bookmarkId": null,
+          "fieldInstruction": null,
+          "fieldDisplayText": null
+        },
+        {
+          "path": "/body/paragraph[2]/run[3]",
+          "text": "可以不依赖源文档，直接调用字体、字号、加粗、页眉页脚、页码、分节、表格、图片和公式等基础能力输出 docx。",
+          "format": {
+            "fontSize": "24",
+            "asciiFont": "Times New Roman",
+            "eastAsiaFont": "宋体",
+            "bold": false,
+            "italic": false,
+            "underline": null,
+            "fontColor": null,
+            "highlight": null,
+            "verticalAlign": null
+          },
+          "segments": [
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[1]",
+              "text": "可以不依赖源文档",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[2]",
+              "text": "，",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[3]",
+              "text": "直接调用字体",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[4]",
+              "text": "、",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[5]",
+              "text": "字号",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[6]",
+              "text": "、",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[7]",
+              "text": "加粗",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[8]",
+              "text": "、",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[9]",
+              "text": "页眉页脚",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[10]",
+              "text": "、",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[11]",
+              "text": "页码",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[12]",
+              "text": "、",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[13]",
+              "text": "分节",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[14]",
+              "text": "、",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[15]",
+              "text": "表格",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[16]",
+              "text": "、",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[17]",
+              "text": "图片和公式等基础能力输出",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[18]",
+              "text": " ",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[19]",
+              "text": "docx",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[2]/run[3]/segment[20]",
+              "text": "。",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            }
+          ],
+          "kind": null,
+          "bookmarkName": null,
+          "bookmarkId": null,
+          "fieldInstruction": null,
+          "fieldDisplayText": null
+        }
+      ],
+      "hasImage": false,
+      "hasTable": false,
+      "hasEquation": false,
+      "tableRows": [],
+      "image": null,
+      "equation": null
+    },
+    {
+      "path": "/body/paragraph[3]",
+      "kind": "paragraph",
+      "text": "化学式如 H2O，面积单位如 m2，都可以直接写回到 docx。",
+      "style": "Normal",
+      "headingLevel": null,
+      "sectionIndex": 1,
+      "pageBreakBefore": false,
+      "containsSectionBreak": false,
+      "outlineRole": "paragraph",
+      "paragraph": {
+        "align": "both",
+        "pageBreakBefore": false,
+        "leftIndent": null,
+        "rightIndent": null,
+        "firstLineIndent": null,
+        "firstLineChars": "200",
+        "hangingIndent": null,
+        "hangingChars": null,
+        "beforeSpacing": null,
+        "afterSpacing": null,
+        "lineSpacing": "360",
+        "lineSpacingRule": "auto",
+        "tabStops": []
+      },
+      "run": {
+        "fontSize": "24",
+        "asciiFont": "Times New Roman",
+        "eastAsiaFont": "宋体",
+        "bold": false,
+        "italic": false,
+        "underline": null,
+        "fontColor": null,
+        "highlight": null,
+        "verticalAlign": null
+      },
+      "runs": [
+        {
+          "path": "/body/paragraph[3]/run[1]",
+          "text": "化学式如 H",
+          "format": {
+            "fontSize": "24",
+            "asciiFont": "Times New Roman",
+            "eastAsiaFont": "宋体",
+            "bold": false,
+            "italic": false,
+            "underline": null,
+            "fontColor": null,
+            "highlight": null,
+            "verticalAlign": null
+          },
+          "segments": [
+            {
+              "path": "/body/paragraph[3]/run[1]/segment[1]",
+              "text": "化学式如",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[3]/run[1]/segment[2]",
+              "text": " ",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[3]/run[1]/segment[3]",
+              "text": "H",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            }
+          ],
+          "kind": null,
+          "bookmarkName": null,
+          "bookmarkId": null,
+          "fieldInstruction": null,
+          "fieldDisplayText": null
+        },
+        {
+          "path": "/body/paragraph[3]/run[2]",
+          "text": "2",
+          "format": {
+            "fontSize": "24",
+            "asciiFont": "Times New Roman",
+            "eastAsiaFont": "宋体",
+            "bold": false,
+            "italic": false,
+            "underline": null,
+            "fontColor": null,
+            "highlight": null,
+            "verticalAlign": null
+          },
+          "segments": [
+            {
+              "path": "/body/paragraph[3]/run[2]/segment[1]",
+              "text": "2",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            }
+          ],
+          "kind": null,
+          "bookmarkName": null,
+          "bookmarkId": null,
+          "fieldInstruction": null,
+          "fieldDisplayText": null
+        },
+        {
+          "path": "/body/paragraph[3]/run[3]",
+          "text": "O，面积单位如 m",
+          "format": {
+            "fontSize": "24",
+            "asciiFont": "Times New Roman",
+            "eastAsiaFont": "宋体",
+            "bold": false,
+            "italic": false,
+            "underline": null,
+            "fontColor": null,
+            "highlight": null,
+            "verticalAlign": null
+          },
+          "segments": [
+            {
+              "path": "/body/paragraph[3]/run[3]/segment[1]",
+              "text": "O",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[3]/run[3]/segment[2]",
+              "text": "，",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[3]/run[3]/segment[3]",
+              "text": "面积单位如",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[3]/run[3]/segment[4]",
+              "text": " ",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[3]/run[3]/segment[5]",
+              "text": "m",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            }
+          ],
+          "kind": null,
+          "bookmarkName": null,
+          "bookmarkId": null,
+          "fieldInstruction": null,
+          "fieldDisplayText": null
+        },
+        {
+          "path": "/body/paragraph[3]/run[4]",
+          "text": "2",
+          "format": {
+            "fontSize": "24",
+            "asciiFont": "Times New Roman",
+            "eastAsiaFont": "宋体",
+            "bold": false,
+            "italic": false,
+            "underline": null,
+            "fontColor": null,
+            "highlight": null,
+            "verticalAlign": null
+          },
+          "segments": [
+            {
+              "path": "/body/paragraph[3]/run[4]/segment[1]",
+              "text": "2",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            }
+          ],
+          "kind": null,
+          "bookmarkName": null,
+          "bookmarkId": null,
+          "fieldInstruction": null,
+          "fieldDisplayText": null
+        },
+        {
+          "path": "/body/paragraph[3]/run[5]",
+          "text": "，都可以直接写回到 docx。",
+          "format": {
+            "fontSize": "24",
+            "asciiFont": "Times New Roman",
+            "eastAsiaFont": "宋体",
+            "bold": false,
+            "italic": false,
+            "underline": null,
+            "fontColor": null,
+            "highlight": null,
+            "verticalAlign": null
+          },
+          "segments": [
+            {
+              "path": "/body/paragraph[3]/run[5]/segment[1]",
+              "text": "，",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[3]/run[5]/segment[2]",
+              "text": "都可以直接写回到",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[3]/run[5]/segment[3]",
+              "text": " ",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[3]/run[5]/segment[4]",
+              "text": "docx",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            },
+            {
+              "path": "/body/paragraph[3]/run[5]/segment[5]",
+              "text": "。",
+              "format": {
+                "fontSize": "24",
+                "asciiFont": "Times New Roman",
+                "eastAsiaFont": "宋体",
+                "bold": false,
+                "italic": false,
+                "underline": null,
+                "fontColor": null,
+                "highlight": null,
+                "verticalAlign": null
+              }
+            }
+          ],
+          "kind": null,
+          "bookmarkName": null,
+          "bookmarkId": null,
+          "fieldInstruction": null,
+          "fieldDisplayText": null
+        }
+      ],
+      "hasImage": false,
+      "hasTable": false,
+      "hasEquation": false,
+      "tableRows": [],
+      "image": null,
+      "equation": null
+    },
+    {
+      "path": "/body/equation[4.1]",
+      "kind": "equation",
+      "text": "E=mc^2",
+      "style": null,
+      "headingLevel": null,
+      "sectionIndex": 1,
+      "pageBreakBefore": false,
+      "containsSectionBreak": false,
+      "outlineRole": "equation",
+      "paragraph": {
+        "align": null,
+        "pageBreakBefore": false,
+        "leftIndent": null,
+        "rightIndent": null,
+        "firstLineIndent": null,
+        "firstLineChars": null,
+        "hangingIndent": null,
+        "hangingChars": null,
+        "beforeSpacing": null,
+        "afterSpacing": null,
+        "lineSpacing": null,
+        "lineSpacingRule": null,
+        "tabStops": []
+      },
+      "run": {
+        "fontSize": null,
+        "asciiFont": null,
+        "eastAsiaFont": null,
+        "bold": false,
+        "italic": false,
+        "underline": null,
+        "fontColor": null,
+        "highlight": null,
+        "verticalAlign": null
+      },
+      "runs": [],
+      "hasImage": false,
+      "hasTable": false,
+      "hasEquation": true,
+      "tableRows": [],
+      "image": null,
+      "equation": {
+        "text": "E=mc^2",
+        "xml": "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>E=mc^2</m:t></m:r></m:oMath></m:oMathPara>",
+        "displayMode": "display"
+      }
+    },
+    {
+      "path": "/body/table[1]",
+      "kind": "table",
+      "text": "能力 | 状态 | 读取并重排现有文档 | 支持 | 直接生成新 docx | 支持",
+      "style": null,
+      "headingLevel": null,
+      "sectionIndex": 1,
+      "pageBreakBefore": false,
+      "containsSectionBreak": false,
+      "outlineRole": "table",
+      "paragraph": {
+        "align": null,
+        "pageBreakBefore": false,
+        "leftIndent": null,
+        "rightIndent": null,
+        "firstLineIndent": null,
+        "firstLineChars": null,
+        "hangingIndent": null,
+        "hangingChars": null,
+        "beforeSpacing": null,
+        "afterSpacing": null,
+        "lineSpacing": null,
+        "lineSpacingRule": null,
+        "tabStops": []
+      },
+      "run": {
+        "fontSize": null,
+        "asciiFont": null,
+        "eastAsiaFont": null,
+        "bold": false,
+        "italic": false,
+        "underline": null,
+        "fontColor": null,
+        "highlight": null,
+        "verticalAlign": null
+      },
+      "runs": [],
+      "hasImage": false,
+      "hasTable": true,
+      "hasEquation": false,
+      "tableRows": [
+        [
+          "能力",
+          "状态"
+        ],
+        [
+          "读取并重排现有文档",
+          "支持"
+        ],
+        [
+          "直接生成新 docx",
+          "支持"
+        ]
+      ],
+      "image": null,
+      "equation": null
+    }
+  ],
+  "assets": [],
+  "issues": []
+}
