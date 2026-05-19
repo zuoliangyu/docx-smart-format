@@ -54,3 +54,6 @@ analysis.json.tmp
 
 # Golden harness scratch (snapshots ARE committed; .work is not)
 tests/golden/.work/
+
+# Rust engine build output
+engine-rs/target/

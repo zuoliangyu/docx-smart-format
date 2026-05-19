@@ -1,0 +1,99 @@
+//! docx-smart-format engine (Rust rewrite).
+//!
+//! Targets the converged surface only: `analyze` + `build` (FormatPlan).
+//! Legacy `apply`/`render` stay on the .NET engine (zero capability loss).
+
+mod docx;
+mod plan;
+
+use std::collections::HashMap;
+use std::process::ExitCode;
+
+fn main() -> ExitCode {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.is_empty() {
+        print_usage();
+        return ExitCode::from(1);
+    }
+
+    let command = args[0].to_ascii_lowercase();
+    let options = parse_options(&args[1..]);
+
+    match command.as_str() {
+        "build" => run_build(&options),
+        "analyze" => {
+            eprintln!("analyze 尚未在 Rust 引擎实现（RS0 纵切仅覆盖 build/generate）。");
+            ExitCode::from(2)
+        }
+        other => {
+            eprintln!("不支持的命令: {other}");
+            print_usage();
+            ExitCode::from(2)
+        }
+    }
+}
+
+fn run_build(options: &HashMap<String, String>) -> ExitCode {
+    let plan_path = match options.get("plan") {
+        Some(p) => p,
+        None => {
+            eprintln!("缺少参数 --plan");
+            return ExitCode::from(1);
+        }
+    };
+    let output = match options.get("output") {
+        Some(o) => o,
+        None => {
+            eprintln!("缺少参数 --output");
+            return ExitCode::from(1);
+        }
+    };
+
+    if options.contains_key("source") {
+        eprintln!("注意: --source 覆盖模式 (overlay) 尚未在 RS0 实现，本切片仅 generate。");
+    }
+
+    let json = match std::fs::read_to_string(plan_path) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("无法读取 {plan_path}: {e}");
+            return ExitCode::from(1);
+        }
+    };
+    let plan: plan::FormatPlan = match serde_json::from_str(&json) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("FormatPlan 解析失败: {e}");
+            return ExitCode::from(1);
+        }
+    };
+
+    match docx::build(&plan, output) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("写回失败: {e}");
+            ExitCode::from(1)
+        }
+    }
+}
+
+/// Mirrors the .NET ParseOptions: `--key value`, flags become empty string.
+fn parse_options(args: &[String]) -> HashMap<String, String> {
+    let mut map = HashMap::new();
+    let mut pending: Option<String> = None;
+    for arg in args {
+        if let Some(key) = arg.strip_prefix("--") {
+            map.entry(key.to_string()).or_insert_with(String::new);
+            pending = Some(key.to_string());
+        } else if let Some(key) = pending.take() {
+            map.insert(key, arg.clone());
+        }
+    }
+    map
+}
+
+fn print_usage() {
+    eprintln!("用法:");
+    eprintln!("  build --plan <format-plan.json> --output <result.docx> [--source <docx>]");
+    eprintln!("  analyze --input <docx> --output <analysis.json>   (尚未实现)");
+}
