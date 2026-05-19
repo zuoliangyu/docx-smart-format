@@ -3,10 +3,14 @@
 //! No docx crate: the hard features this engine exists for
 //! (mc:AlternateContent + VML dual track, OMML, template style copy,
 //! field codes) have no mature Rust library, so we emit OOXML directly
-//! and keep full control. This slice covers the FormatPlan generate path
-//! at paragraph fidelity; sections/objects/headers come next.
+//! and keep full control.
+//!
+//! Coverage: FormatPlan generate path at paragraph fidelity (RS0) plus
+//! multi-section support (RS1): `sections[]` + block `sectionKey` drive
+//! section breaks; per-section page size / margins / orientation /
+//! pgNumType / titlePg. No new OPC parts yet (headers/footers = RS2).
 
-use crate::plan::{FormatPlan, PlanBlock, PlanDocument, PlanFormat};
+use crate::plan::{FormatPlan, PlanBlock, PlanDocument, PlanFormat, PlanSection};
 use std::io::Write;
 use zip::write::SimpleFileOptions;
 
@@ -17,7 +21,6 @@ pub fn build(plan: &FormatPlan, output: &str) -> std::io::Result<()> {
 
     let file = std::fs::File::create(output)?;
     let mut zip = zip::ZipWriter::new(file);
-    // Stored for [Content_Types]/.rels is conventional; deflate the body.
     let stored = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
     let deflated = SimpleFileOptions::default();
 
@@ -40,12 +43,83 @@ const CONTENT_TYPES: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="
 const ROOT_RELS: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>"#;
 
-fn render_document(plan: &FormatPlan) -> String {
-    let mut body = String::new();
-    for block in &plan.blocks {
-        body.push_str(&render_block(&plan.document, block));
+/// A built paragraph kept structured so a section break can be injected
+/// into the last paragraph's pPr (mirrors .NET AttachSectionBreak).
+struct Para {
+    ppr_inner: String,
+    run: String,
+}
+
+impl Para {
+    fn serialize(&self, extra_ppr: &str) -> String {
+        let ppr = format!("{}{}", self.ppr_inner, extra_ppr);
+        let ppr = if ppr.is_empty() {
+            String::new()
+        } else {
+            format!("<w:pPr>{ppr}</w:pPr>")
+        };
+        format!("<w:p>{ppr}{}</w:p>", self.run)
     }
-    body.push_str(&section_properties(&plan.document));
+}
+
+fn render_document(plan: &FormatPlan) -> String {
+    // Group consecutive blocks by sectionKey (None = default section).
+    let mut groups: Vec<(Option<String>, Vec<&PlanBlock>)> = Vec::new();
+    for block in &plan.blocks {
+        let key = block.section_key.clone();
+        match groups.last_mut() {
+            Some((k, v)) if *k == key => v.push(block),
+            _ => groups.push((key, vec![block])),
+        }
+    }
+    if groups.is_empty() {
+        groups.push((None, Vec::new()));
+    }
+
+    let find_section = |key: &Option<String>| -> Option<&PlanSection> {
+        key.as_ref()
+            .and_then(|k| plan.sections.iter().find(|s| &s.key == k))
+    };
+
+    let mut body = String::new();
+    let last_idx = groups.len() - 1;
+    for (gi, (key, blocks)) in groups.iter().enumerate() {
+        let section = find_section(key);
+        let mut paras: Vec<Para> = blocks
+            .iter()
+            .map(|b| render_block(&plan.document, b))
+            .collect();
+
+        if gi == last_idx {
+            // Final section: sectPr is a direct body child.
+            for p in &paras {
+                body.push_str(&p.serialize(""));
+            }
+            body.push_str(&format!(
+                "<w:sectPr>{}</w:sectPr>",
+                section_inner(section, &plan.document, false)
+            ));
+        } else {
+            // Closing section: sectPr goes in the last paragraph's pPr.
+            if paras.is_empty() {
+                paras.push(Para {
+                    ppr_inner: String::new(),
+                    run: "<w:r/>".to_string(),
+                });
+            }
+            let n = paras.len();
+            for (pi, p) in paras.iter().enumerate() {
+                if pi == n - 1 {
+                    body.push_str(&p.serialize(&format!(
+                        "<w:sectPr>{}</w:sectPr>",
+                        section_inner(section, &plan.document, true)
+                    )));
+                } else {
+                    body.push_str(&p.serialize(""));
+                }
+            }
+        }
+    }
 
     format!(
         r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -53,7 +127,7 @@ fn render_document(plan: &FormatPlan) -> String {
     )
 }
 
-fn render_block(doc: &PlanDocument, block: &PlanBlock) -> String {
+fn render_block(doc: &PlanDocument, block: &PlanBlock) -> Para {
     let role = block.role.trim().to_ascii_lowercase();
     let heading_level = match role.as_str() {
         "heading1" => Some(1),
@@ -69,13 +143,11 @@ fn render_block(doc: &PlanDocument, block: &PlanBlock) -> String {
         }
     });
 
-    let ppr = paragraph_properties(block.format.as_ref(), doc);
+    let ppr_inner = paragraph_properties_inner(block.format.as_ref(), doc);
     let rpr = run_properties(block.format.as_ref(), doc, heading_level, role == "title");
 
     let run = if role == "pagenumber" {
-        format!(
-            r#"<w:fldSimple w:instr=" PAGE "><w:r>{rpr}<w:t>1</w:t></w:r></w:fldSimple>"#
-        )
+        format!(r#"<w:fldSimple w:instr=" PAGE "><w:r>{rpr}<w:t>1</w:t></w:r></w:fldSimple>"#)
     } else {
         format!(
             r#"<w:r>{rpr}<w:t xml:space="preserve">{}</w:t></w:r>"#,
@@ -83,10 +155,10 @@ fn render_block(doc: &PlanDocument, block: &PlanBlock) -> String {
         )
     };
 
-    format!("<w:p>{ppr}{run}</w:p>")
+    Para { ppr_inner, run }
 }
 
-fn paragraph_properties(fmt: Option<&PlanFormat>, doc: &PlanDocument) -> String {
+fn paragraph_properties_inner(fmt: Option<&PlanFormat>, doc: &PlanDocument) -> String {
     let mut inner = String::new();
 
     if let Some(a) = fmt.and_then(|f| f.align.as_deref()).and_then(map_align) {
@@ -131,11 +203,7 @@ fn paragraph_properties(fmt: Option<&PlanFormat>, doc: &PlanDocument) -> String 
         inner.push_str("<w:pageBreakBefore/>");
     }
 
-    if inner.is_empty() {
-        String::new()
-    } else {
-        format!("<w:pPr>{inner}</w:pPr>")
-    }
+    inner
 }
 
 fn run_properties(
@@ -184,31 +252,77 @@ fn run_properties(
         .map(half_point)
         .or_else(|| doc.base_font_pt.map(half_point))
         .unwrap_or_else(|| fallback_heading_size(heading_level));
-    inner.push_str(&format!(
-        r#"<w:sz w:val="{sz}"/><w:szCs w:val="{sz}"/>"#
-    ));
+    inner.push_str(&format!(r#"<w:sz w:val="{sz}"/><w:szCs w:val="{sz}"/>"#));
 
     format!("<w:rPr>{inner}</w:rPr>")
 }
 
-fn section_properties(doc: &PlanDocument) -> String {
+/// sectPr children. `is_break` => this is a non-final (closing) section,
+/// so honor an explicit section type if given.
+fn section_inner(section: Option<&PlanSection>, doc: &PlanDocument, is_break: bool) -> String {
+    let orientation = section
+        .and_then(|s| s.orientation.clone())
+        .or_else(|| doc.orientation.clone());
     let (w, h) = page_size_twips(doc.page_size.as_deref());
-    let orient = match doc.orientation.as_deref() {
+    let orient_attr = match orientation.as_deref() {
         Some("landscape") => r#" w:orient="landscape""#,
         _ => "",
     };
-    let m = doc.margins.as_ref();
-    let top = m.and_then(|x| x.top.clone()).unwrap_or_else(|| "1440".into());
-    let bottom = m.and_then(|x| x.bottom.clone()).unwrap_or_else(|| "1440".into());
-    let left = m.and_then(|x| x.left.clone()).unwrap_or_else(|| "1800".into());
-    let right = m.and_then(|x| x.right.clone()).unwrap_or_else(|| "1800".into());
-    format!(
-        r#"<w:sectPr><w:pgSz w:w="{w}" w:h="{h}"{orient}/><w:pgMar w:top="{}" w:bottom="{}" w:left="{}" w:right="{}" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>"#,
+
+    let dm = doc.margins.as_ref();
+    let sm = section.and_then(|s| s.margins.as_ref());
+    let pick = |f: fn(&crate::plan::PlanMargins) -> Option<String>, def: &str| -> String {
+        sm.and_then(f)
+            .or_else(|| dm.and_then(f))
+            .unwrap_or_else(|| def.to_string())
+    };
+    let top = pick(|m| m.top.clone(), "1440");
+    let bottom = pick(|m| m.bottom.clone(), "1440");
+    let left = pick(|m| m.left.clone(), "1800");
+    let right = pick(|m| m.right.clone(), "1800");
+
+    let mut out = String::new();
+
+    if is_break {
+        if let Some(t) = section
+            .and_then(|s| s.r#type.as_deref())
+            .and_then(map_section_type)
+        {
+            out.push_str(&format!(r#"<w:type w:val="{t}"/>"#));
+        }
+    }
+
+    out.push_str(&format!(r#"<w:pgSz w:w="{w}" w:h="{h}"{orient_attr}/>"#));
+    out.push_str(&format!(
+        r#"<w:pgMar w:top="{}" w:bottom="{}" w:left="{}" w:right="{}" w:header="720" w:footer="720" w:gutter="0"/>"#,
         xml_escape(&top),
         xml_escape(&bottom),
         xml_escape(&left),
         xml_escape(&right)
-    )
+    ));
+
+    if let Some(s) = section {
+        let fmt_attr = s
+            .page_num_fmt
+            .as_deref()
+            .and_then(map_page_num_fmt)
+            .map(|f| format!(r#" w:fmt="{f}""#))
+            .unwrap_or_default();
+        match s.page_start {
+            Some(start) => out.push_str(&format!(
+                r#"<w:pgNumType{fmt_attr} w:start="{start}"/>"#
+            )),
+            None if !fmt_attr.is_empty() => {
+                out.push_str(&format!(r#"<w:pgNumType{fmt_attr}/>"#))
+            }
+            None => {}
+        }
+        if s.title_page {
+            out.push_str("<w:titlePg/>");
+        }
+    }
+
+    out
 }
 
 fn page_size_twips(size: Option<&str>) -> (&'static str, &'static str) {
@@ -259,6 +373,26 @@ fn map_vertical_align(v: &str) -> Option<&'static str> {
         "superscript" | "super" | "上标" => Some("superscript"),
         "subscript" | "sub" | "下标" => Some("subscript"),
         "baseline" | "normal" | "基线" => Some("baseline"),
+        _ => None,
+    }
+}
+
+fn map_section_type(v: &str) -> Option<&'static str> {
+    match v.trim().to_ascii_lowercase().as_str() {
+        "continuous" => Some("continuous"),
+        "evenpage" => Some("evenPage"),
+        "oddpage" => Some("oddPage"),
+        "nextcolumn" => Some("nextColumn"),
+        "nextpage" => Some("nextPage"),
+        _ => None,
+    }
+}
+
+fn map_page_num_fmt(v: &str) -> Option<&'static str> {
+    match v.trim().to_ascii_lowercase().as_str() {
+        "decimal" => Some("decimal"),
+        "upperroman" => Some("upperRoman"),
+        "lowerroman" => Some("lowerRoman"),
         _ => None,
     }
 }
