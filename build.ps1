@@ -54,11 +54,17 @@ Write-Host ""
 
 $absOutput = Join-Path $scriptRoot $OutputDir
 
+# Single-file + compression keeps the engine zero-install (self-contained:
+# no Office/WPS/.NET required on the user's machine) while roughly halving
+# on-disk size. IL trimming is deliberately NOT enabled: DocumentFormat.OpenXml
+# is reflection-heavy and trimming risks silent runtime breakage.
 dotnet publish $projectPath `
     -c $Configuration `
     -r $Rid `
     --self-contained true `
-    -p:PublishSingleFile=false `
+    -p:PublishSingleFile=true `
+    -p:EnableCompressionInSingleFile=true `
+    -p:DebugType=none `
     -o $absOutput
 
 if ($LASTEXITCODE -ne 0) {
