@@ -113,6 +113,14 @@ impl Para {
     }
 }
 
+/// Body-level element. A table (`<w:tbl>`) is a sibling of `<w:p>` and
+/// cannot host a sectPr, so section-break injection must fall back to a
+/// trailing empty paragraph (mirrors .NET AttachSectionBreak).
+enum BodyElem {
+    Para(Para),
+    Raw(String),
+}
+
 fn render_document(plan: &FormatPlan, has_footer: bool) -> String {
     let footer_rid = if has_footer { Some(FOOTER_RID) } else { None };
 
@@ -137,35 +145,42 @@ fn render_document(plan: &FormatPlan, has_footer: bool) -> String {
     let last_idx = groups.len() - 1;
     for (gi, (key, blocks)) in groups.iter().enumerate() {
         let section = find_section(key);
-        let mut paras: Vec<Para> = blocks
+        let mut elems: Vec<BodyElem> = blocks
             .iter()
-            .map(|b| render_block(&plan.document, b))
+            .flat_map(|b| render_block(&plan.document, b))
             .collect();
 
         if gi == last_idx {
-            for p in &paras {
-                body.push_str(&p.serialize(""));
+            for e in &elems {
+                match e {
+                    BodyElem::Para(p) => body.push_str(&p.serialize("")),
+                    BodyElem::Raw(s) => body.push_str(s),
+                }
             }
             body.push_str(&format!(
                 "<w:sectPr>{}</w:sectPr>",
                 section_inner(section, &plan.document, false, footer_rid)
             ));
         } else {
-            if paras.is_empty() {
-                paras.push(Para {
+            let sect = format!(
+                "<w:sectPr>{}</w:sectPr>",
+                section_inner(section, &plan.document, true, footer_rid)
+            );
+            // sectPr must live in a paragraph. If the section ends in a
+            // table (or is empty), append a trailing empty paragraph.
+            let host_in_last_para = matches!(elems.last(), Some(BodyElem::Para(_)));
+            if !host_in_last_para {
+                elems.push(BodyElem::Para(Para {
                     ppr_inner: String::new(),
                     run: "<w:r/>".to_string(),
-                });
+                }));
             }
-            let n = paras.len();
-            for (pi, p) in paras.iter().enumerate() {
-                if pi == n - 1 {
-                    body.push_str(&p.serialize(&format!(
-                        "<w:sectPr>{}</w:sectPr>",
-                        section_inner(section, &plan.document, true, footer_rid)
-                    )));
-                } else {
-                    body.push_str(&p.serialize(""));
+            let n = elems.len();
+            for (ei, e) in elems.iter().enumerate() {
+                match e {
+                    BodyElem::Para(p) if ei == n - 1 => body.push_str(&p.serialize(&sect)),
+                    BodyElem::Para(p) => body.push_str(&p.serialize("")),
+                    BodyElem::Raw(s) => body.push_str(s),
                 }
             }
         }
@@ -177,8 +192,23 @@ fn render_document(plan: &FormatPlan, has_footer: bool) -> String {
     )
 }
 
-fn render_block(doc: &PlanDocument, block: &PlanBlock) -> Para {
+fn render_block(doc: &PlanDocument, block: &PlanBlock) -> Vec<BodyElem> {
     let role = block.role.trim().to_ascii_lowercase();
+
+    // Table block: emit <w:tbl> + optional centered caption paragraph.
+    if role == "table" || block.table.is_some() {
+        let rows = block
+            .table
+            .as_ref()
+            .map(|t| t.rows.clone())
+            .unwrap_or_default();
+        let mut out = vec![BodyElem::Raw(build_table(doc, &rows))];
+        if let Some(cap) = block.caption.as_deref().filter(|c| !c.trim().is_empty()) {
+            out.push(BodyElem::Para(caption_para(doc, cap)));
+        }
+        return out;
+    }
+
     let heading_level = match role.as_str() {
         "heading1" => Some(1),
         "heading2" => Some(2),
@@ -205,7 +235,72 @@ fn render_block(doc: &PlanDocument, block: &PlanBlock) -> Para {
         )
     };
 
-    Para { ppr_inner, run }
+    vec![BodyElem::Para(Para { ppr_inner, run })]
+}
+
+fn caption_para(doc: &PlanDocument, text: &str) -> Para {
+    let rpr = run_properties(None, doc, None, false);
+    Para {
+        ppr_inner: r#"<w:jc w:val="center"/>"#.to_string(),
+        run: format!(
+            r#"<w:r>{rpr}<w:t xml:space="preserve">{}</w:t></w:r>"#,
+            xml_escape(text)
+        ),
+    }
+}
+
+/// Mirrors .NET DocxRenderer.BuildTable: full-width centered three-line
+/// table (top + bottom rule, no side/inside borders); first row is a
+/// header when there is more than one row (bold + bottom rule).
+fn build_table(doc: &PlanDocument, rows: &[Vec<String>]) -> String {
+    let tbl_pr = concat!(
+        r#"<w:tblPr>"#,
+        r#"<w:tblW w:w="5000" w:type="pct"/>"#,
+        r#"<w:jc w:val="center"/>"#,
+        r#"<w:tblBorders>"#,
+        r#"<w:top w:val="single" w:sz="12"/>"#,
+        r#"<w:bottom w:val="single" w:sz="12"/>"#,
+        r#"<w:left w:val="none" w:sz="0"/>"#,
+        r#"<w:right w:val="none" w:sz="0"/>"#,
+        r#"<w:insideH w:val="none" w:sz="0"/>"#,
+        r#"<w:insideV w:val="none" w:sz="0"/>"#,
+        r#"</w:tblBorders>"#,
+        r#"</w:tblPr>"#,
+    );
+
+    let mut body = String::new();
+    let row_count = rows.len();
+    for (ri, row) in rows.iter().enumerate() {
+        let is_header = ri == 0 && row_count > 1;
+        body.push_str("<w:tr>");
+        for cell in row {
+            let rpr = if is_header {
+                let mut f = PlanFormat::default();
+                f.bold = Some(true);
+                run_properties(Some(&f), doc, None, false)
+            } else {
+                run_properties(None, doc, None, false)
+            };
+            let tc_borders = if is_header {
+                r#"<w:tcBorders><w:bottom w:val="single" w:sz="6"/></w:tcBorders>"#
+            } else {
+                ""
+            };
+            body.push_str(&format!(
+                r#"<w:tc><w:tcPr><w:tcW w:type="auto"/>{tc_borders}</w:tcPr><w:p><w:r>{rpr}<w:t xml:space="preserve">{}</w:t></w:r></w:p></w:tc>"#,
+                xml_escape(cell)
+            ));
+        }
+        body.push_str("</w:tr>");
+    }
+
+    if row_count == 0 {
+        body.push_str(
+            r#"<w:tr><w:tc><w:tcPr><w:tcW w:type="auto"/></w:tcPr><w:p><w:r><w:t></w:t></w:r></w:p></w:tc></w:tr>"#,
+        );
+    }
+
+    format!("<w:tbl>{tbl_pr}{body}</w:tbl>")
 }
 
 fn paragraph_properties_inner(fmt: Option<&PlanFormat>, doc: &PlanDocument) -> String {
