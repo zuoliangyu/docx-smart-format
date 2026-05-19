@@ -67,12 +67,23 @@ pub struct PlanBlock {
     pub caption: Option<String>,
     pub format: Option<PlanFormat>,
     pub table: Option<PlanTable>,
+    pub image: Option<PlanImage>,
 }
 
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase", default)]
 pub struct PlanTable {
     pub rows: Vec<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct PlanImage {
+    pub path: Option<String>,
+    pub content_type: Option<String>,
+    pub width_emu: Option<i64>,
+    pub height_emu: Option<i64>,
+    pub alt_text: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]

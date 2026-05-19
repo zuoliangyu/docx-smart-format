@@ -2,29 +2,77 @@
 //!
 //! No docx crate: the hard features this engine exists for
 //! (mc:AlternateContent + VML dual track, OMML, template style copy,
-//! field codes) have no mature Rust library, so we emit OOXML directly
-//! and keep full control.
+//! field codes) have no mature Rust library, so we emit OOXML directly.
 //!
 //! Coverage:
 //!   RS0  FormatPlan generate path at paragraph fidelity.
 //!   RS1  multi-section: sections[] + block sectionKey -> section breaks.
-//!   RS2  OPC relationship/parts machinery + a centered PAGE-field footer
-//!        when document.headerFooter.pageNumber is set. The package
-//!        builder here is what RS4 (images) will reuse.
+//!   RS2  footer (centered PAGE field) when headerFooter.pageNumber set.
+//!   RS3  tables (three-line, header row) + caption.
+//!   RS4  images: a real OPC relationship/parts accumulator (Package)
+//!        that footer + media share; inline DrawingML picture.
 
 use crate::plan::{FormatPlan, PlanBlock, PlanDocument, PlanFormat, PlanSection};
+use std::collections::BTreeMap;
 use std::io::Write;
 use zip::write::SimpleFileOptions;
 
 const W_NS: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const R_NS: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-const FOOTER_RID: &str = "rId1";
+const WP_NS: &str = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+const A_NS: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
+const PIC_NS: &str = "http://schemas.openxmlformats.org/drawingml/2006/picture";
+
+/// OPC relationship/parts accumulator. footer and media both flow
+/// through here; rIds are allocated in registration order.
+struct Package {
+    rels: Vec<(String, String, String)>, // (id, type, target relative to word/)
+    overrides: Vec<(String, String)>,    // (partName, contentType)
+    defaults: BTreeMap<String, String>,  // ext -> contentType
+    parts: Vec<(String, Vec<u8>, bool)>, // (zip path, bytes, stored?)
+    next_rid: u32,
+    img_seq: u32,
+}
+
+impl Package {
+    fn new() -> Self {
+        Package {
+            rels: Vec::new(),
+            overrides: Vec::new(),
+            defaults: BTreeMap::new(),
+            parts: Vec::new(),
+            next_rid: 1,
+            img_seq: 0,
+        }
+    }
+
+    fn add_rel(&mut self, rel_type: &str, target: &str) -> String {
+        let id = format!("rId{}", self.next_rid);
+        self.next_rid += 1;
+        self.rels
+            .push((id.clone(), rel_type.to_string(), target.to_string()));
+        id
+    }
+}
 
 pub fn build(plan: &FormatPlan, output: &str) -> std::io::Result<()> {
-    let footer_xml = footer_part(&plan.document);
-    let has_footer = footer_xml.is_some();
+    let mut pkg = Package::new();
 
-    let document_xml = render_document(plan, has_footer);
+    // Footer first so it keeps rId1 (parity with the RS2 layout).
+    let footer_rid = if let Some(footer_xml) = footer_part(&plan.document) {
+        let rid = pkg.add_rel(&format!("{R_NS}/footer"), "footer1.xml");
+        pkg.overrides.push((
+            "/word/footer1.xml".to_string(),
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml".to_string(),
+        ));
+        pkg.parts
+            .push(("word/footer1.xml".to_string(), footer_xml.into_bytes(), false));
+        Some(rid)
+    } else {
+        None
+    };
+
+    let document_xml = render_document(plan, &mut pkg, footer_rid.as_deref());
 
     let file = std::fs::File::create(output)?;
     let mut zip = zip::ZipWriter::new(file);
@@ -32,7 +80,7 @@ pub fn build(plan: &FormatPlan, output: &str) -> std::io::Result<()> {
     let deflated = SimpleFileOptions::default();
 
     zip.start_file("[Content_Types].xml", stored)?;
-    zip.write_all(content_types(has_footer).as_bytes())?;
+    zip.write_all(content_types(&pkg).as_bytes())?;
 
     zip.start_file("_rels/.rels", stored)?;
     zip.write_all(ROOT_RELS.as_bytes())?;
@@ -40,42 +88,65 @@ pub fn build(plan: &FormatPlan, output: &str) -> std::io::Result<()> {
     zip.start_file("word/document.xml", deflated)?;
     zip.write_all(document_xml.as_bytes())?;
 
-    if let Some(footer) = footer_xml {
-        zip.start_file("word/footer1.xml", deflated)?;
-        zip.write_all(footer.as_bytes())?;
-
+    if !pkg.rels.is_empty() {
         zip.start_file("word/_rels/document.xml.rels", stored)?;
-        zip.write_all(document_rels().as_bytes())?;
+        zip.write_all(document_rels(&pkg).as_bytes())?;
+    }
+
+    for (path, bytes, is_stored) in &pkg.parts {
+        zip.start_file(path, if *is_stored { stored } else { deflated })?;
+        zip.write_all(bytes)?;
     }
 
     zip.finish()?;
     Ok(())
 }
 
-fn content_types(has_footer: bool) -> String {
-    let footer_override = if has_footer {
-        r#"<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>"#
-    } else {
-        ""
-    };
-    format!(
+fn content_types(pkg: &Package) -> String {
+    let mut s = String::from(
         r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>{footer_override}</Types>"#
-    )
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>"#,
+    );
+    for (ext, ct) in &pkg.defaults {
+        s.push_str(&format!(
+            r#"<Default Extension="{}" ContentType="{}"/>"#,
+            xml_escape(ext),
+            xml_escape(ct)
+        ));
+    }
+    s.push_str(r#"<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>"#);
+    for (part, ct) in &pkg.overrides {
+        s.push_str(&format!(
+            r#"<Override PartName="{}" ContentType="{}"/>"#,
+            xml_escape(part),
+            xml_escape(ct)
+        ));
+    }
+    s.push_str("</Types>");
+    s
 }
 
 const ROOT_RELS: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>"#;
 
-fn document_rels() -> String {
-    format!(
+fn document_rels(pkg: &Package) -> String {
+    let mut s = String::from(
         r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="{FOOTER_RID}" Type="{R_NS}/footer" Target="footer1.xml"/></Relationships>"#
-    )
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">"#,
+    );
+    for (id, rtype, target) in &pkg.rels {
+        s.push_str(&format!(
+            r#"<Relationship Id="{}" Type="{}" Target="{}"/>"#,
+            xml_escape(id),
+            xml_escape(rtype),
+            xml_escape(target)
+        ));
+    }
+    s.push_str("</Relationships>");
+    s
 }
 
-/// Centered PAGE-field footer, emitted when pageNumber qualifies.
-/// Mirrors .NET FormatPlanCompiler.NeedsPageNumberFooter.
+/// Centered PAGE-field footer. Mirrors .NET NeedsPageNumberFooter.
 fn footer_part(doc: &PlanDocument) -> Option<String> {
     let v = doc
         .header_footer
@@ -94,8 +165,6 @@ fn footer_part(doc: &PlanDocument) -> Option<String> {
     }
 }
 
-/// A built paragraph kept structured so a section break can be injected
-/// into the last paragraph's pPr (mirrors .NET AttachSectionBreak).
 struct Para {
     ppr_inner: String,
     run: String,
@@ -113,17 +182,13 @@ impl Para {
     }
 }
 
-/// Body-level element. A table (`<w:tbl>`) is a sibling of `<w:p>` and
-/// cannot host a sectPr, so section-break injection must fall back to a
-/// trailing empty paragraph (mirrors .NET AttachSectionBreak).
+/// <w:tbl> is a <w:p> sibling and cannot host a sectPr.
 enum BodyElem {
     Para(Para),
     Raw(String),
 }
 
-fn render_document(plan: &FormatPlan, has_footer: bool) -> String {
-    let footer_rid = if has_footer { Some(FOOTER_RID) } else { None };
-
+fn render_document(plan: &FormatPlan, pkg: &mut Package, footer_rid: Option<&str>) -> String {
     let mut groups: Vec<(Option<String>, Vec<&PlanBlock>)> = Vec::new();
     for block in &plan.blocks {
         let key = block.section_key.clone();
@@ -144,11 +209,11 @@ fn render_document(plan: &FormatPlan, has_footer: bool) -> String {
     let mut body = String::new();
     let last_idx = groups.len() - 1;
     for (gi, (key, blocks)) in groups.iter().enumerate() {
-        let section = find_section(key);
-        let mut elems: Vec<BodyElem> = blocks
-            .iter()
-            .flat_map(|b| render_block(&plan.document, b))
-            .collect();
+        let section: Option<&PlanSection> = find_section(key);
+        let mut elems: Vec<BodyElem> = Vec::new();
+        for b in blocks {
+            elems.extend(render_block(&plan.document, b, pkg));
+        }
 
         if gi == last_idx {
             for e in &elems {
@@ -166,8 +231,6 @@ fn render_document(plan: &FormatPlan, has_footer: bool) -> String {
                 "<w:sectPr>{}</w:sectPr>",
                 section_inner(section, &plan.document, true, footer_rid)
             );
-            // sectPr must live in a paragraph. If the section ends in a
-            // table (or is empty), append a trailing empty paragraph.
             let host_in_last_para = matches!(elems.last(), Some(BodyElem::Para(_)));
             if !host_in_last_para {
                 elems.push(BodyElem::Para(Para {
@@ -188,14 +251,24 @@ fn render_document(plan: &FormatPlan, has_footer: bool) -> String {
 
     format!(
         r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="{W_NS}" xmlns:r="{R_NS}"><w:body>{body}</w:body></w:document>"#
+<w:document xmlns:w="{W_NS}" xmlns:r="{R_NS}" xmlns:wp="{WP_NS}" xmlns:a="{A_NS}" xmlns:pic="{PIC_NS}"><w:body>{body}</w:body></w:document>"#
     )
 }
 
-fn render_block(doc: &PlanDocument, block: &PlanBlock) -> Vec<BodyElem> {
+fn render_block(doc: &PlanDocument, block: &PlanBlock, pkg: &mut Package) -> Vec<BodyElem> {
     let role = block.role.trim().to_ascii_lowercase();
 
-    // Table block: emit <w:tbl> + optional centered caption paragraph.
+    if role == "figure" || block.image.is_some() {
+        let mut out = Vec::new();
+        if let Some(p) = image_paragraph(block, pkg) {
+            out.push(BodyElem::Para(p));
+        }
+        if let Some(cap) = block.caption.as_deref().filter(|c| !c.trim().is_empty()) {
+            out.push(BodyElem::Para(caption_para(doc, cap)));
+        }
+        return out;
+    }
+
     if role == "table" || block.table.is_some() {
         let rows = block
             .table
@@ -238,6 +311,103 @@ fn render_block(doc: &PlanDocument, block: &PlanBlock) -> Vec<BodyElem> {
     vec![BodyElem::Para(Para { ppr_inner, run })]
 }
 
+/// Inline DrawingML picture. Mirrors .NET BuildImageParagraph: a missing
+/// or unreadable file yields no paragraph (caption still emitted).
+fn image_paragraph(block: &PlanBlock, pkg: &mut Package) -> Option<Para> {
+    let img = block.image.as_ref()?;
+    let path = img.path.as_deref()?;
+    let bytes = std::fs::read(path).ok()?;
+
+    let ext = image_ext(path, img.content_type.as_deref());
+    let content_type = image_content_type(ext);
+    pkg.defaults
+        .entry(ext.to_string())
+        .or_insert_with(|| content_type.to_string());
+
+    pkg.img_seq += 1;
+    let media_name = format!("media/image{}.{}", pkg.img_seq, ext);
+    pkg.parts
+        .push((format!("word/{media_name}"), bytes, true));
+    let rid = pkg.add_rel(&format!("{R_NS}/image"), &media_name);
+
+    let w = img.width_emu.unwrap_or(4_000_000);
+    let h = img.height_emu.unwrap_or(3_000_000);
+    let name = std::path::Path::new(path)
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "image".to_string());
+    let alt = img.alt_text.clone().unwrap_or_else(|| name.clone());
+    let name = xml_escape(&name);
+    let alt = xml_escape(&alt);
+
+    let drawing = format!(
+        concat!(
+            r#"<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">"#,
+            r#"<wp:extent cx="{w}" cy="{h}"/>"#,
+            r#"<wp:effectExtent l="0" t="0" r="0" b="0"/>"#,
+            r#"<wp:docPr id="1" name="{name}" descr="{alt}"/>"#,
+            r#"<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>"#,
+            r#"<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">"#,
+            r#"<pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="{name}" descr="{alt}"/><pic:cNvPicPr/></pic:nvPicPr>"#,
+            r#"<pic:blipFill><a:blip r:embed="{rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>"#,
+            r#"<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{w}" cy="{h}"/></a:xfrm>"#,
+            r#"<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>"#,
+            r#"</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>"#,
+        ),
+        w = w,
+        h = h,
+        name = name,
+        alt = alt,
+        rid = rid
+    );
+
+    Some(Para {
+        ppr_inner: String::new(),
+        run: format!("<w:r>{drawing}</w:r>"),
+    })
+}
+
+fn image_ext<'a>(path: &'a str, content_type: Option<&'a str>) -> &'a str {
+    let by_ct = content_type.map(|c| c.to_ascii_lowercase());
+    match by_ct.as_deref() {
+        Some("image/png") => return "png",
+        Some("image/jpeg") | Some("image/jpg") => return "jpeg",
+        Some("image/gif") => return "gif",
+        Some("image/bmp") => return "bmp",
+        Some("image/tiff") => return "tiff",
+        Some("image/x-emf") => return "emf",
+        Some("image/x-wmf") => return "wmf",
+        _ => {}
+    }
+    match std::path::Path::new(path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_ascii_lowercase())
+        .as_deref()
+    {
+        Some("png") => "png",
+        Some("jpg") | Some("jpeg") => "jpeg",
+        Some("gif") => "gif",
+        Some("bmp") => "bmp",
+        Some("tif") | Some("tiff") => "tiff",
+        Some("emf") => "emf",
+        Some("wmf") => "wmf",
+        _ => "png",
+    }
+}
+
+fn image_content_type(ext: &str) -> &'static str {
+    match ext {
+        "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "bmp" => "image/bmp",
+        "tiff" => "image/tiff",
+        "emf" => "image/x-emf",
+        "wmf" => "image/x-wmf",
+        _ => "image/png",
+    }
+}
+
 fn caption_para(doc: &PlanDocument, text: &str) -> Para {
     let rpr = run_properties(None, doc, None, false);
     Para {
@@ -249,9 +419,6 @@ fn caption_para(doc: &PlanDocument, text: &str) -> Para {
     }
 }
 
-/// Mirrors .NET DocxRenderer.BuildTable: full-width centered three-line
-/// table (top + bottom rule, no side/inside borders); first row is a
-/// header when there is more than one row (bold + bottom rule).
 fn build_table(doc: &PlanDocument, rows: &[Vec<String>]) -> String {
     let tbl_pr = concat!(
         r#"<w:tblPr>"#,
@@ -402,8 +569,6 @@ fn run_properties(
     format!("<w:rPr>{inner}</w:rPr>")
 }
 
-/// sectPr children, in OOXML-mandated order: footerReference must precede
-/// w:type / w:pgSz. `is_break` => non-final section (honor section type).
 fn section_inner(
     section: Option<&PlanSection>,
     doc: &PlanDocument,
