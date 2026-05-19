@@ -1,0 +1,13 @@
+{
+  "docType": "general-formal-doc",
+  "document": {
+    "cnFont": "宋体",
+    "enFont": "Times New Roman",
+    "baseFontPt": 12
+  },
+  "blocks": [
+    { "ref": "/body/paragraph[1]", "role": "heading1", "format": { "bold": true, "align": "center" } },
+    { "ref": "/body/paragraph[2]", "role": "body", "format": { "firstLineIndent": "480" } },
+    { "role": "body", "text": "这一段没有 ref，是从零生成、追加到覆盖结果之后的新段落。" }
+  ]
+}

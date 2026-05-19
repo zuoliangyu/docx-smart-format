@@ -22,6 +22,8 @@ try
             return RunApply(options);
         case "render":
             return RunRender(options);
+        case "plan":
+            return RunPlan(options);
         default:
             Console.Error.WriteLine($"不支持的命令: {command}");
             PrintUsage();
@@ -116,6 +118,33 @@ static int RunRender(Dictionary<string, string> options)
     return 0;
 }
 
+static int RunPlan(Dictionary<string, string> options)
+{
+    var planPath = RequireOption(options, "plan");
+    var output = RequireOption(options, "output");
+    var template = options.TryGetValue("template", out var templatePath) ? templatePath : null;
+    var sourcePath = options.TryGetValue("source", out var src) ? src : null;
+
+    AnalysisReport? source = null;
+    if (!string.IsNullOrWhiteSpace(sourcePath))
+    {
+        var workDir = options.TryGetValue("workdir", out var wd) ? wd : Path.GetDirectoryName(Path.GetFullPath(output));
+        Directory.CreateDirectory(workDir!);
+        var sourceAssets = Path.Combine(workDir!, "assets", Path.GetFileNameWithoutExtension(sourcePath));
+        Directory.CreateDirectory(sourceAssets);
+        source = DocxAnalyzer.Analyze(sourcePath, sourceAssets);
+    }
+
+    var plan = ReadJson<FormatPlan>(planPath);
+    var renderSpec = FormatPlanCompiler.Compile(plan, source);
+
+    if (ShouldNormalizeReferences(options, null))
+        ReferenceNormalizer.Normalize(renderSpec);
+
+    DocxRenderer.Render(renderSpec, output, template);
+    return 0;
+}
+
 static bool ShouldNormalizeReferences(Dictionary<string, string> options, string? templatePreset)
 {
     if (options.TryGetValue("normalize-references", out var flag))
@@ -192,5 +221,6 @@ static void PrintUsage()
     Console.Error.WriteLine("  apply --source <docx> --decision <decision.json> --output <result.docx> [--template <template.docx>] [--normalize-references]");
     Console.Error.WriteLine("  apply --source <docx> --decision <decision.json> --output <result.docx> --template-preset builtin-undergraduate-thesis [--university-name <text>] [--thesis-title <text>] [--normalize-references]");
     Console.Error.WriteLine("  render --spec <render-spec.json> --output <result.docx> [--template <template.docx>] [--template-preset <preset>] [--normalize-references]");
+    Console.Error.WriteLine("  plan --plan <format-plan.json> --output <result.docx> [--source <docx>] [--template <template.docx>] [--normalize-references]");
     Console.Error.WriteLine("  (--normalize-references 默认在 --template-preset=builtin-undergraduate-thesis 时自动启用，可显式传 --normalize-references false 关闭)");
 }

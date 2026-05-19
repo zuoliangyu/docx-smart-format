@@ -1,0 +1,307 @@
+=== CASE plan-overlay
+exit 0
+--- stderr
+
+--- stdout
+
+--- artifact plan-overlay.docx
+### ENTRY [Content_Types].xml
+<?xml version="1.0" encoding="utf-16"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml" />
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml" />
+</Types>
+### ENTRY _rels/.rels
+<?xml version="1.0" encoding="utf-16"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="/word/document.xml" Id="R__1" />
+</Relationships>
+### ENTRY word/document.xml
+<?xml version="1.0" encoding="utf-16"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading1" />
+        <w:outlineLvl w:val="0" />
+        <w:jc w:val="center" />
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:b />
+          <w:sz w:val="36" />
+          <w:szCs w:val="36" />
+        </w:rPr>
+        <w:t xml:space="preserve">智能格式化生成示例</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:ind w:firstLine="480" />
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">这是一个由本地技能直接生成的新</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve"> </w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">Word</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve"> </w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">文档</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">。</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">DOCX</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve"> </w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">Smart</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve"> </w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">Format</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">可以不依赖源文档</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">，</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">直接调用字体</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">、</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">字号</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">、</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">加粗</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">、</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">页眉页脚</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">、</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">页码</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">、</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">分节</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">、</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">表格</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">、</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">图片和公式等基础能力输出</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve"> </w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">docx</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">。</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体" w:cs="宋体" />
+          <w:sz w:val="24" />
+          <w:szCs w:val="24" />
+        </w:rPr>
+        <w:t xml:space="preserve">这一段没有 ref，是从零生成、追加到覆盖结果之后的新段落。</w:t>
+      </w:r>
+    </w:p>
+    <w:sectPr>
+      <w:pgSz w:w="11906" w:h="16838" />
+    </w:sectPr>
+  </w:body>
+</w:document>
+

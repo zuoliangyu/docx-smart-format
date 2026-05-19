@@ -1,0 +1,27 @@
+{
+  "docType": "academic-thesis",
+  "document": {
+    "title": "FormatPlan 生成示例",
+    "author": "docx-smart-format",
+    "pageSize": "a4",
+    "cnFont": "宋体",
+    "enFont": "Times New Roman",
+    "baseFontPt": 12,
+    "lineSpacing": 1.5,
+    "headerFooter": { "pageNumber": "center-page-number" }
+  },
+  "sections": [
+    { "key": "front", "pageNumFmt": "upperRoman", "titlePage": true },
+    { "key": "main", "pageStart": 1, "pageNumFmt": "decimal" }
+  ],
+  "blocks": [
+    { "role": "title", "sectionKey": "front", "text": "统一契约渲染验证", "format": { "bold": true, "align": "center", "fontPt": 18 } },
+    { "role": "body", "sectionKey": "front", "text": "本文档由 FormatPlan 经 Compiler 降级为 RenderSpec 后渲染，用于验证统一契约路径。" },
+    { "role": "heading1", "sectionKey": "main", "text": "第一章 概述" },
+    { "role": "body", "sectionKey": "main", "text": "正文段落自动套用文档级中英文字体与 1.5 倍行距。化学式 H2O 与单位 m2 走引擎侧自动格式化。", "format": { "firstLineIndent": "480" } },
+    { "role": "heading2", "sectionKey": "main", "text": "1.1 表格与公式" },
+    { "role": "table", "sectionKey": "main", "table": { "rows": [["项", "值"], ["宽", "70%"], ["高", "auto"]] }, "caption": "表1 参数表" },
+    { "role": "equation", "sectionKey": "main", "equation": { "text": "E = m c^2", "displayMode": "display" } },
+    { "role": "reference", "sectionKey": "main", "text": "[1] 作者. 标题[J]. 期刊, 2026.", "format": { "hangingIndent": "480" } }
+  ]
+}
