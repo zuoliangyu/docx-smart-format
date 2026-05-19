@@ -5,19 +5,26 @@
 //! field codes) have no mature Rust library, so we emit OOXML directly
 //! and keep full control.
 //!
-//! Coverage: FormatPlan generate path at paragraph fidelity (RS0) plus
-//! multi-section support (RS1): `sections[]` + block `sectionKey` drive
-//! section breaks; per-section page size / margins / orientation /
-//! pgNumType / titlePg. No new OPC parts yet (headers/footers = RS2).
+//! Coverage:
+//!   RS0  FormatPlan generate path at paragraph fidelity.
+//!   RS1  multi-section: sections[] + block sectionKey -> section breaks.
+//!   RS2  OPC relationship/parts machinery + a centered PAGE-field footer
+//!        when document.headerFooter.pageNumber is set. The package
+//!        builder here is what RS4 (images) will reuse.
 
 use crate::plan::{FormatPlan, PlanBlock, PlanDocument, PlanFormat, PlanSection};
 use std::io::Write;
 use zip::write::SimpleFileOptions;
 
 const W_NS: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+const R_NS: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+const FOOTER_RID: &str = "rId1";
 
 pub fn build(plan: &FormatPlan, output: &str) -> std::io::Result<()> {
-    let document_xml = render_document(plan);
+    let footer_xml = footer_part(&plan.document);
+    let has_footer = footer_xml.is_some();
+
+    let document_xml = render_document(plan, has_footer);
 
     let file = std::fs::File::create(output)?;
     let mut zip = zip::ZipWriter::new(file);
@@ -25,7 +32,7 @@ pub fn build(plan: &FormatPlan, output: &str) -> std::io::Result<()> {
     let deflated = SimpleFileOptions::default();
 
     zip.start_file("[Content_Types].xml", stored)?;
-    zip.write_all(CONTENT_TYPES.as_bytes())?;
+    zip.write_all(content_types(has_footer).as_bytes())?;
 
     zip.start_file("_rels/.rels", stored)?;
     zip.write_all(ROOT_RELS.as_bytes())?;
@@ -33,15 +40,59 @@ pub fn build(plan: &FormatPlan, output: &str) -> std::io::Result<()> {
     zip.start_file("word/document.xml", deflated)?;
     zip.write_all(document_xml.as_bytes())?;
 
+    if let Some(footer) = footer_xml {
+        zip.start_file("word/footer1.xml", deflated)?;
+        zip.write_all(footer.as_bytes())?;
+
+        zip.start_file("word/_rels/document.xml.rels", stored)?;
+        zip.write_all(document_rels().as_bytes())?;
+    }
+
     zip.finish()?;
     Ok(())
 }
 
-const CONTENT_TYPES: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>"#;
+fn content_types(has_footer: bool) -> String {
+    let footer_override = if has_footer {
+        r#"<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>"#
+    } else {
+        ""
+    };
+    format!(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>{footer_override}</Types>"#
+    )
+}
 
 const ROOT_RELS: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>"#;
+
+fn document_rels() -> String {
+    format!(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="{FOOTER_RID}" Type="{R_NS}/footer" Target="footer1.xml"/></Relationships>"#
+    )
+}
+
+/// Centered PAGE-field footer, emitted when pageNumber qualifies.
+/// Mirrors .NET FormatPlanCompiler.NeedsPageNumberFooter.
+fn footer_part(doc: &PlanDocument) -> Option<String> {
+    let v = doc
+        .header_footer
+        .as_ref()
+        .and_then(|hf| hf.page_number.as_deref())
+        .map(|s| s.trim().to_ascii_lowercase());
+    match v.as_deref() {
+        Some("continuous") | Some("center-page-number") => {
+            let rpr = run_properties(None, doc, None, false);
+            Some(format!(
+                r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:ftr xmlns:w="{W_NS}"><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:fldSimple w:instr=" PAGE "><w:r>{rpr}<w:t>1</w:t></w:r></w:fldSimple></w:p></w:ftr>"#
+            ))
+        }
+        _ => None,
+    }
+}
 
 /// A built paragraph kept structured so a section break can be injected
 /// into the last paragraph's pPr (mirrors .NET AttachSectionBreak).
@@ -62,8 +113,9 @@ impl Para {
     }
 }
 
-fn render_document(plan: &FormatPlan) -> String {
-    // Group consecutive blocks by sectionKey (None = default section).
+fn render_document(plan: &FormatPlan, has_footer: bool) -> String {
+    let footer_rid = if has_footer { Some(FOOTER_RID) } else { None };
+
     let mut groups: Vec<(Option<String>, Vec<&PlanBlock>)> = Vec::new();
     for block in &plan.blocks {
         let key = block.section_key.clone();
@@ -91,16 +143,14 @@ fn render_document(plan: &FormatPlan) -> String {
             .collect();
 
         if gi == last_idx {
-            // Final section: sectPr is a direct body child.
             for p in &paras {
                 body.push_str(&p.serialize(""));
             }
             body.push_str(&format!(
                 "<w:sectPr>{}</w:sectPr>",
-                section_inner(section, &plan.document, false)
+                section_inner(section, &plan.document, false, footer_rid)
             ));
         } else {
-            // Closing section: sectPr goes in the last paragraph's pPr.
             if paras.is_empty() {
                 paras.push(Para {
                     ppr_inner: String::new(),
@@ -112,7 +162,7 @@ fn render_document(plan: &FormatPlan) -> String {
                 if pi == n - 1 {
                     body.push_str(&p.serialize(&format!(
                         "<w:sectPr>{}</w:sectPr>",
-                        section_inner(section, &plan.document, true)
+                        section_inner(section, &plan.document, true, footer_rid)
                     )));
                 } else {
                     body.push_str(&p.serialize(""));
@@ -123,7 +173,7 @@ fn render_document(plan: &FormatPlan) -> String {
 
     format!(
         r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="{W_NS}"><w:body>{body}</w:body></w:document>"#
+<w:document xmlns:w="{W_NS}" xmlns:r="{R_NS}"><w:body>{body}</w:body></w:document>"#
     )
 }
 
@@ -257,9 +307,31 @@ fn run_properties(
     format!("<w:rPr>{inner}</w:rPr>")
 }
 
-/// sectPr children. `is_break` => this is a non-final (closing) section,
-/// so honor an explicit section type if given.
-fn section_inner(section: Option<&PlanSection>, doc: &PlanDocument, is_break: bool) -> String {
+/// sectPr children, in OOXML-mandated order: footerReference must precede
+/// w:type / w:pgSz. `is_break` => non-final section (honor section type).
+fn section_inner(
+    section: Option<&PlanSection>,
+    doc: &PlanDocument,
+    is_break: bool,
+    footer_rid: Option<&str>,
+) -> String {
+    let mut out = String::new();
+
+    if let Some(rid) = footer_rid {
+        out.push_str(&format!(
+            r#"<w:footerReference w:type="default" r:id="{rid}"/>"#
+        ));
+    }
+
+    if is_break {
+        if let Some(t) = section
+            .and_then(|s| s.r#type.as_deref())
+            .and_then(map_section_type)
+        {
+            out.push_str(&format!(r#"<w:type w:val="{t}"/>"#));
+        }
+    }
+
     let orientation = section
         .and_then(|s| s.orientation.clone())
         .or_else(|| doc.orientation.clone());
@@ -281,17 +353,6 @@ fn section_inner(section: Option<&PlanSection>, doc: &PlanDocument, is_break: bo
     let left = pick(|m| m.left.clone(), "1800");
     let right = pick(|m| m.right.clone(), "1800");
 
-    let mut out = String::new();
-
-    if is_break {
-        if let Some(t) = section
-            .and_then(|s| s.r#type.as_deref())
-            .and_then(map_section_type)
-        {
-            out.push_str(&format!(r#"<w:type w:val="{t}"/>"#));
-        }
-    }
-
     out.push_str(&format!(r#"<w:pgSz w:w="{w}" w:h="{h}"{orient_attr}/>"#));
     out.push_str(&format!(
         r#"<w:pgMar w:top="{}" w:bottom="{}" w:left="{}" w:right="{}" w:header="720" w:footer="720" w:gutter="0"/>"#,
@@ -309,9 +370,9 @@ fn section_inner(section: Option<&PlanSection>, doc: &PlanDocument, is_break: bo
             .map(|f| format!(r#" w:fmt="{f}""#))
             .unwrap_or_default();
         match s.page_start {
-            Some(start) => out.push_str(&format!(
-                r#"<w:pgNumType{fmt_attr} w:start="{start}"/>"#
-            )),
+            Some(start) => {
+                out.push_str(&format!(r#"<w:pgNumType{fmt_attr} w:start="{start}"/>"#))
+            }
             None if !fmt_attr.is_empty() => {
                 out.push_str(&format!(r#"<w:pgNumType{fmt_attr}/>"#))
             }
