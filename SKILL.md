@@ -120,6 +120,15 @@ else:
 - 是否分节不确定 → 不新建分节
 - 是否编号不确定 → 不编号，除非模板明确强制
 
+## 遗留能力（仍支持，FormatPlan 暂未覆盖）
+
+以下两项能力 FormatPlan/`build` 暂无等价表达，**仍通过遗留命令支持，未删除**：
+
+- **毕业论文预设**：`apply ... --template-preset builtin-undergraduate-thesis`（自动启用参考文献规范化）。
+- **模板化结构重排**：`apply --source <docx> --decision <decision.json> --template <template.docx>`，按模板样式做结构映射合并。
+
+需要这两项时使用遗留命令；其余一律走 `build` + FormatPlan。两者将在 FormatPlan 达到能力对等后再行收敛。
+
 ## 资源索引
 
 - [references/format-plan-schema.md](references/format-plan-schema.md) — FormatPlan 字段定义与能力映射

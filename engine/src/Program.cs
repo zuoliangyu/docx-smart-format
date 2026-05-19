@@ -20,8 +20,11 @@ try
             return RunAnalyze(options);
         case "build":
             return RunPlan(options);
-        // Legacy, undocumented: kept only so the golden harness can keep
-        // gauging pre-rewrite behavior until R4 removes the old engine.
+        // Legacy but SUPPORTED: apply/render carry capabilities the
+        // FormatPlan path does not yet replicate (template-driven
+        // structural reformat, builtin-undergraduate-thesis preset).
+        // Kept until FormatPlan reaches parity. Do not remove without
+        // a lossless replacement.
         case "apply":
             return RunApply(options);
         case "render":
@@ -224,4 +227,8 @@ static void PrintUsage()
     Console.Error.WriteLine("");
     Console.Error.WriteLine("  build 有 --source 即重排现有文档，无 --source 即从零生成。");
     Console.Error.WriteLine("  --normalize-references 显式传 false/off/0 可关闭参考文献规范化。");
+    Console.Error.WriteLine("");
+    Console.Error.WriteLine("遗留命令（仍支持，FormatPlan 暂未覆盖这两项能力）:");
+    Console.Error.WriteLine("  apply  --source <docx> --decision <decision.json> --output <docx> [--template <docx>] [--template-preset builtin-undergraduate-thesis]");
+    Console.Error.WriteLine("  render --spec <render-spec.json> --output <docx> [--template <docx>] [--template-preset <preset>]");
 }

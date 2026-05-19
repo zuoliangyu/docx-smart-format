@@ -87,6 +87,19 @@ $skill = "$env:USERPROFILE\.claude\skills\docx-smart-format"
 
 `--normalize-references` 触发参考文献书签 + REF 字段交叉引用规范化，传 `false`/`off`/`0` 关闭。详见 [`references/reference-normalization.md`](references/reference-normalization.md)。
 
+### 遗留命令（仍支持）
+
+`apply` / `render` 未删除，承载 FormatPlan 暂未覆盖的能力：
+
+```powershell
+# 毕业论文预设（自动启用参考文献规范化）
+& "$skill\engine\runtime\docx-auto-template-engine.exe" `
+    apply --source .\input.docx --decision .\decision.json `
+          --output .\result.docx --template-preset builtin-undergraduate-thesis
+```
+
+模板化结构重排同样经 `apply --template <template.docx>`。两者待 FormatPlan 能力对等后再收敛。
+
 ### 校验
 
 `scripts/validate_decision.py` 仅校验旧版 decision 结构（FormatPlan 校验器待后续提供）。当前以 [`scripts/sample-format-plan.json`](scripts/sample-format-plan.json) 为结构参照。

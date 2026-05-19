@@ -7,10 +7,23 @@
 ## [Unreleased]
 
 ### Added
-- 待新增内容入此节。
+- 统一 LLM 契约 `FormatPlan`（覆盖/生成同形，靠块 `ref` 区分）与 `FormatPlanCompiler`。
+- `build` 命令：有 `--source` 即重排、无即从零生成。
+- `references/format-plan-schema.md`；`scripts/sample-format-plan.json`。
+- `tests/golden/` 行为回归网（record/verify，规范化 + 易变量清洗）。
 
 ### Changed
-- 待变更内容入此节。
+- 架构重写（分阶段 R0–R4，全程 golden 守护，逐字节零回归）：
+  - `DocxRenderer` 1754 行单体拆为 7 个 feature partial。
+  - CLI 收敛为 `analyze` + `build`；SKILL.md 257→~150 行（认知瘦身）。
+  - 发布改单文件 + 压缩，自包含产物 ~60-70MB → 单个 38MB exe，仍零安装（不需 Office/WPS/.NET）。
+- `decision-schema.md` 移除，由 `format-plan-schema.md` 取代。
+
+### Deferred / Known gaps
+- 逐部件页眉控制、`builtin-undergraduate-thesis` 预设、模板化结构重排
+  尚未由 FormatPlan 覆盖；`apply`/`render` 作为遗留命令**保留且仍支持**，
+  待 FormatPlan 达到能力对等后再收敛删除（零能力损失约束）。
+- FormatPlan 专用校验器待补；`validate_decision.py` 仍只校验旧 decision。
 
 ### Fixed
 - 待修复内容入此节。
