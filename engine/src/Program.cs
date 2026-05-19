@@ -18,12 +18,14 @@ try
     {
         case "analyze":
             return RunAnalyze(options);
+        case "build":
+            return RunPlan(options);
+        // Legacy, undocumented: kept only so the golden harness can keep
+        // gauging pre-rewrite behavior until R4 removes the old engine.
         case "apply":
             return RunApply(options);
         case "render":
             return RunRender(options);
-        case "plan":
-            return RunPlan(options);
         default:
             Console.Error.WriteLine($"不支持的命令: {command}");
             PrintUsage();
@@ -218,9 +220,8 @@ static void PrintUsage()
 {
     Console.Error.WriteLine("用法:");
     Console.Error.WriteLine("  analyze --input <docx> --output <analysis.json> [--assets <dir>]");
-    Console.Error.WriteLine("  apply --source <docx> --decision <decision.json> --output <result.docx> [--template <template.docx>] [--normalize-references]");
-    Console.Error.WriteLine("  apply --source <docx> --decision <decision.json> --output <result.docx> --template-preset builtin-undergraduate-thesis [--university-name <text>] [--thesis-title <text>] [--normalize-references]");
-    Console.Error.WriteLine("  render --spec <render-spec.json> --output <result.docx> [--template <template.docx>] [--template-preset <preset>] [--normalize-references]");
-    Console.Error.WriteLine("  plan --plan <format-plan.json> --output <result.docx> [--source <docx>] [--template <template.docx>] [--normalize-references]");
-    Console.Error.WriteLine("  (--normalize-references 默认在 --template-preset=builtin-undergraduate-thesis 时自动启用，可显式传 --normalize-references false 关闭)");
+    Console.Error.WriteLine("  build --plan <format-plan.json> --output <result.docx> [--source <docx>] [--template <template.docx>] [--normalize-references]");
+    Console.Error.WriteLine("");
+    Console.Error.WriteLine("  build 有 --source 即重排现有文档，无 --source 即从零生成。");
+    Console.Error.WriteLine("  --normalize-references 显式传 false/off/0 可关闭参考文献规范化。");
 }

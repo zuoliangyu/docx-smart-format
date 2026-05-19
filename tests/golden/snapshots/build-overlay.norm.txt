@@ -1,10 +1,10 @@
-=== CASE plan-overlay
+=== CASE build-overlay
 exit 0
 --- stderr
 
 --- stdout
 
---- artifact plan-overlay.docx
+--- artifact build-overlay.docx
 ### ENTRY [Content_Types].xml
 <?xml version="1.0" encoding="utf-16"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">

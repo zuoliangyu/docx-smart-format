@@ -1,5 +1,9 @@
 # 页眉页脚深度规则
 
+> **契约说明（含已知缺口）**：LLM 侧契约是 [FormatPlan](format-plan-schema.md)。文档级开关经 `document.headerFooter`（`oddEven` / `firstDifferent` / `pageNumber`）表达。
+>
+> 本文档描述的**逐部件页眉控制**（按 `decisionKey` 注册多条 header、`sourcePath` 复用模板内特定 header XML、奇偶页分别绑定不同内容、STYLEREF 取值部件）属引擎已有能力，但**当前 FormatPlan 尚未把这套逐部件覆盖完整暴露出来**——这是架构重写引入的已知缺口，待后续在 FormatPlan 增补 `headerFooter.parts` 一类结构。下文中的 `headerFooterDecisions` 指引擎内部降级形式，供理解原理与定位问题，暂不可由 FormatPlan 直接驱动其全部细节。
+
 ## OOXML `type` 语义（强约束，禁止望文生义）
 
 `<w:headerReference>` / `<w:footerReference>` 的 `w:type` 属性是 OOXML 强约定：

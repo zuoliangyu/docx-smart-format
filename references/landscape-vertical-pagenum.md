@@ -1,5 +1,7 @@
 # 横向页面 + 竖向页码文本框
 
+> **契约说明**：本文档展示引擎内部 RenderSpec / OOXML 结构以解释竖排页码原理。LLM 侧请用 [FormatPlan](format-plan-schema.md)（横向节用 `sections[].orientation: "landscape"`），引擎自动降级生成下述 `wps:wsp` + VML 双轨结构。
+
 ## 适用场景
 
 当某一节是横向页面（landscape），且页码需要竖向排布在页面左侧（装订边方向）时，调用页眉/页脚的 `textBoxes` 能力：

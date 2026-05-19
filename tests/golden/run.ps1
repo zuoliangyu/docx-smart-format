@@ -197,13 +197,13 @@ $results += Invoke-Case 'apply-basic' `
     @('apply', '--source', $basic, '--decision', (Join-Path $fix 'sample-decision.json'), '--output', $applied, '--workdir', (Join-Path $work 'applywork')) `
     $applied
 
-# R2: unified FormatPlan path (plan command -> Compiler -> RenderSpec).
-$planGen = Join-Path $work 'plan-generate.docx'
-$planOv  = Join-Path $work 'plan-overlay.docx'
-$results += Invoke-Case 'plan-generate' `
-    @('plan', '--plan', (Join-Path $fix 'sample-format-plan.json'), '--output', $planGen) $planGen
-$results += Invoke-Case 'plan-overlay' `
-    @('plan', '--plan', (Join-Path $fix 'sample-format-plan-overlay.json'), '--source', $basic, '--output', $planOv, '--workdir', (Join-Path $work 'planwork')) `
+# R2/R3: unified FormatPlan path via the `build` command -> Compiler -> RenderSpec.
+$planGen = Join-Path $work 'build-generate.docx'
+$planOv  = Join-Path $work 'build-overlay.docx'
+$results += Invoke-Case 'build-generate' `
+    @('build', '--plan', (Join-Path $fix 'sample-format-plan.json'), '--output', $planGen) $planGen
+$results += Invoke-Case 'build-overlay' `
+    @('build', '--plan', (Join-Path $fix 'sample-format-plan-overlay.json'), '--source', $basic, '--output', $planOv, '--workdir', (Join-Path $work 'planwork')) `
     $planOv
 
 $fail = ($results | Where-Object { -not $_ }).Count

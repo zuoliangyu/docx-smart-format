@@ -6,7 +6,9 @@
 
 - `SKILL.md`：LLM 入口。规则修改优先在这里及 `references/` 中体现。
 - `references/`：规则与能力清单。**修改这些会直接改变 LLM 行为**，请同步考虑是否影响 `scripts/sample-*.json`。
-- `scripts/validate_decision.py`：决策 JSON 校验器。`references/decision-schema.md` 与本脚本保持一致。
+- `references/format-plan-schema.md`：LLM 唯一契约 FormatPlan 的字段定义。
+- `scripts/validate_decision.py`：旧版 decision 结构校验器（FormatPlan 校验器待补）。
+- `tests/golden/`：行为回归网（架构重写安全网）。改引擎后必须 `run.ps1 -Mode verify`。
 - `agents/openai.yaml`：Codex/OpenAI agent 元数据。
 - `engine/src/`：C# 引擎源代码（.NET 8）。
 - `engine/runtime/`：本地 `dotnet publish` 出来的产物，**不要提交到 git**（已在 `.gitignore`）。

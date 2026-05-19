@@ -11,11 +11,11 @@
 
 ## 特性
 
-- **两种模式**：基于现有 `.docx` 重排（analyze → decide → apply），或从零生成新 `.docx`（render）。
-- **LLM 只出决策、不出 XML**：分四层（文档级 / 块级 / 行内 / 对象级）输出 JSON，引擎写回。
+- **单一契约**：LLM 只输出一种 `FormatPlan`。块有 `ref` 即重排现有文档、无 `ref` 即从零生成，两种意图同形。
+- **LLM 只出决策、不出 XML**：输出 `FormatPlan` JSON，引擎降级为内部表示后写回。
 - **覆盖排版痛点**：分节、奇偶页眉、STYLEREF 字段、`pgNumType` + `PAGE` 字段、参考文献条目书签 + 上标 REF 交叉引用、横向页竖排页码（`wps:wsp` + VML 双轨）。
 - **本地、离线**：skill 不联网，所有模板规则在 `references/`。
-- **可校验**：`scripts/validate_decision.py` 校验决策 JSON 结构。
+- **可校验**：`scripts/validate_decision.py` 校验旧版 decision 结构（FormatPlan 校验器待后续提供）。
 
 ## 平台与依赖
 
@@ -53,45 +53,43 @@ cd docx-smart-format
 
 ## 快速开始
 
-### 模式一：重排现有 `.docx`
+两条命令：`analyze`（仅重排现有文档时需要）和 `build`（写回）。`build` 有 `--source` 即重排、无 `--source` 即从零生成。
+
+### 重排现有 `.docx`
 
 ```powershell
 $skill = "$env:USERPROFILE\.claude\skills\docx-smart-format"
 
-# 1. 分析源文档
+# 1. 分析源文档（每个 body 块得到稳定 path）
 & "$skill\engine\runtime\docx-auto-template-engine.exe" `
-    analyze --input  .\input.docx `
-            --output .\analysis.json
+    analyze --input .\input.docx --output .\analysis.json
 
-# 2. LLM 根据 analysis.json 生成 decision.json（结构见 references/decision-schema.md）
+# 2. LLM 据 analysis.json 生成 format-plan.json（块用 ref 指向源块 path，结构见 references/format-plan-schema.md）
 # 3. 写回
 & "$skill\engine\runtime\docx-auto-template-engine.exe" `
-    apply --source   .\input.docx `
-          --decision .\decision.json `
-          --output   .\result.docx `
+    build --plan   .\format-plan.json `
+          --source .\input.docx `
+          --output .\result.docx `
           --template .\template.docx
 ```
 
-### 模式二：从零生成
+### 从零生成
 
 ```powershell
 $skill = "$env:USERPROFILE\.claude\skills\docx-smart-format"
 
+# FormatPlan 块不带 ref，自带 text/image/table/equation
 & "$skill\engine\runtime\docx-auto-template-engine.exe" `
-    render --spec   .\render-spec.json `
-           --output .\result.docx `
-           --template-preset builtin-undergraduate-thesis
+    build --plan   .\format-plan.json `
+          --output .\result.docx `
+          --normalize-references
 ```
 
-毕业论文场景下 `--template-preset builtin-undergraduate-thesis` 会自动启用 `--normalize-references`。详见 [`references/reference-normalization.md`](references/reference-normalization.md)。
+`--normalize-references` 触发参考文献书签 + REF 字段交叉引用规范化，传 `false`/`off`/`0` 关闭。详见 [`references/reference-normalization.md`](references/reference-normalization.md)。
 
-### 校验决策 JSON
+### 校验
 
-```powershell
-python scripts\validate_decision.py decision.json
-```
-
-通过会打印 `[OK] decision.json 结构合法` 并列出关键计数；错误会以 `[ERROR]` 前缀输出并以非零退出码结束。
+`scripts/validate_decision.py` 仅校验旧版 decision 结构（FormatPlan 校验器待后续提供）。当前以 [`scripts/sample-format-plan.json`](scripts/sample-format-plan.json) 为结构参照。
 
 ## 目录结构
 
@@ -100,16 +98,17 @@ docx-smart-format/
 ├── SKILL.md                       # Skill 主文档（LLM 入口）
 ├── agents/openai.yaml             # Codex/OpenAI agent 元数据
 ├── references/                    # 模板规则、能力清单、深度规范
-│   ├── decision-schema.md
+│   ├── format-plan-schema.md      # LLM 唯一契约
 │   ├── template-catalog.md        # 字体/字号唯一权威
 │   ├── local-capability-map.md
 │   ├── header-footer-odd-even.md
 │   ├── reference-normalization.md
 │   └── landscape-vertical-pagenum.md
 ├── scripts/
-│   ├── sample-decision.json
-│   ├── sample-render-spec.json
+│   ├── sample-format-plan.json    # FormatPlan 样例
+│   ├── sample-render-spec.json    # 旧样例（R4 前保留）
 │   ├── sample-chem-render-spec.json
+│   ├── sample-decision.json
 │   └── validate_decision.py
 └── engine/
     ├── runtime/                   # 预编译引擎（gitignore，发布到 Release）
@@ -119,7 +118,7 @@ docx-smart-format/
 ## 文档导航
 
 - LLM 怎么用：从 [`SKILL.md`](SKILL.md) 开始。
-- 字段定义：[`references/decision-schema.md`](references/decision-schema.md)。
+- 字段定义：[`references/format-plan-schema.md`](references/format-plan-schema.md)。
 - 字体字号默认值：[`references/template-catalog.md`](references/template-catalog.md)。
 - 奇偶页眉与页码：[`references/header-footer-odd-even.md`](references/header-footer-odd-even.md)。
 - 参考文献交叉引用：[`references/reference-normalization.md`](references/reference-normalization.md)。

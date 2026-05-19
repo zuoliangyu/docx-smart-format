@@ -2,11 +2,12 @@
 
 毕业论文 / 正式技术报告里，正文中的引用上标（如 `^[1]^`、`^[1,3]^`、`^[1-3]^`）必须与参考文献条目一一对应。本地引擎提供**参考文献规范化**能力。
 
+> **契约说明**：LLM 侧只写 [FormatPlan](format-plan-schema.md)（`role: reference` 块 + 正文 `[n]` 用 `format.verticalAlign: "superscript"`）。下文出现的 “RenderSpec” 指引擎内部降级形式，LLM 不直接编写；书签 / 域 / Tab / 悬挂缩进全部由引擎执行。
+
 ## 开启方式
 
-- 显式开关：`--normalize-references`（apply 与 render 均接受）
-- 自动开启：`--template-preset builtin-undergraduate-thesis` 时默认启用
-- 显式关闭：`--normalize-references false`
+- 显式开关：`build --normalize-references`
+- 显式关闭：`build --normalize-references false`
 
 ## 规范化行为
 
