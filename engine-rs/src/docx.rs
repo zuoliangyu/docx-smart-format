@@ -429,10 +429,13 @@ fn render_block(
             .as_ref()
             .map(|t| t.rows.clone())
             .unwrap_or_default();
-        let mut out = vec![BodyElem::Raw(build_table(doc, &rows))];
+        // Table caption goes ABOVE the table per SKILL.md spec
+        // ("表注默认放表上方"). Figure caption stays below.
+        let mut out: Vec<BodyElem> = Vec::new();
         if let Some(cap) = block.caption.as_deref().filter(|c| !c.trim().is_empty()) {
             out.push(BodyElem::Para(caption_para(doc, cap)));
         }
+        out.push(BodyElem::Raw(build_table(doc, &rows)));
         return out;
     }
 
@@ -703,11 +706,9 @@ fn equation_para(doc: &PlanDocument, block: &PlanBlock) -> Para {
         // the document root, so the caller-supplied element resolves.
         x.to_string()
     } else if !text.is_empty() {
-        let rpr = run_properties(None, doc, None, false);
-        format!(
-            r#"<w:r>{rpr}<w:t xml:space="preserve">{}</w:t></w:r>"#,
-            xml_escape(text)
-        )
+        // Text fallback runs through autoformat so ^2 / x_1 / H2O become
+        // proper sub/super runs instead of literal characters.
+        render_text_segments(text, None, doc, None, false, None)
     } else {
         // Empty equation: emit an empty run so the paragraph is well-formed.
         let rpr = run_properties(None, doc, None, false);
@@ -759,9 +760,29 @@ fn render_text_segments(
                                 r#"<w:r>{rpr}<w:t xml:space="preserve">{}</w:t></w:r>"#,
                                 xml_escape(&s)
                             )),
-                            refs::CitPiece::Ref(n) => out.push_str(&format!(
-                                r#"<w:fldSimple w:instr=" REF {BOOKMARK_PREFIX}{n} \h "><w:r>{rpr}<w:t>{n}</w:t></w:r></w:fldSimple>"#
-                            )),
+                            refs::CitPiece::Ref(n) => {
+                                // Complex field (begin/separate/end). fldSimple's cached
+                                // inner rPr is unreliable in some Word versions for
+                                // superscript citations — the digit re-renders at baseline.
+                                // Putting rPr on every run (including the begin/separate/
+                                // end carriers and the display run) forces super to stick
+                                // both before and after F9.
+                                out.push_str(&format!(
+                                    r#"<w:r>{rpr}<w:fldChar w:fldCharType="begin"/></w:r>"#
+                                ));
+                                out.push_str(&format!(
+                                    r#"<w:r>{rpr}<w:instrText xml:space="preserve"> REF {BOOKMARK_PREFIX}{n} \h </w:instrText></w:r>"#
+                                ));
+                                out.push_str(&format!(
+                                    r#"<w:r>{rpr}<w:fldChar w:fldCharType="separate"/></w:r>"#
+                                ));
+                                out.push_str(&format!(
+                                    r#"<w:r>{rpr}<w:t>{n}</w:t></w:r>"#
+                                ));
+                                out.push_str(&format!(
+                                    r#"<w:r>{rpr}<w:fldChar w:fldCharType="end"/></w:r>"#
+                                ));
+                            }
                         }
                     }
                     continue;
