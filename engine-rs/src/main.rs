@@ -7,6 +7,7 @@ mod analyze;
 mod autoformat;
 mod docx;
 mod plan;
+mod refs;
 
 use std::collections::HashMap;
 use std::process::ExitCode;
@@ -94,7 +95,12 @@ fn run_build(options: &HashMap<String, String>) -> ExitCode {
         }
     };
 
-    match docx::build(&plan, output, source_map.as_ref()) {
+    let normalize_refs = match options.get("normalize-references") {
+        None => false,
+        Some(v) => !matches!(v.trim().to_ascii_lowercase().as_str(), "false" | "off" | "0"),
+    };
+
+    match docx::build(&plan, output, source_map.as_ref(), normalize_refs) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("写回失败: {e}");
@@ -120,6 +126,6 @@ fn parse_options(args: &[String]) -> HashMap<String, String> {
 
 fn print_usage() {
     eprintln!("用法:");
-    eprintln!("  build --plan <format-plan.json> --output <result.docx> [--source <docx>]");
-    eprintln!("  analyze --input <docx> --output <analysis.json>   (尚未实现)");
+    eprintln!("  build --plan <format-plan.json> --output <result.docx> [--source <docx>] [--normalize-references]");
+    eprintln!("  analyze --input <docx> --output <analysis.json>");
 }

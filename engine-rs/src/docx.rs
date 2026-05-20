@@ -15,6 +15,7 @@
 use crate::analyze::SourceBlock;
 use crate::autoformat;
 use crate::plan::{FormatPlan, PlanBlock, PlanDocument, PlanFormat, PlanSection};
+use crate::refs::{self, RefNormalize, BOOKMARK_PREFIX, DEFAULT_HANGING_CHARS, DEFAULT_TAB_POSITION};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Write;
 use zip::write::SimpleFileOptions;
@@ -61,7 +62,16 @@ pub fn build(
     plan: &FormatPlan,
     output: &str,
     source: Option<&HashMap<String, SourceBlock>>,
+    normalize_refs: bool,
 ) -> std::io::Result<()> {
+    let rn_owned: Option<RefNormalize> = if normalize_refs {
+        let r = RefNormalize::collect(plan);
+        if r.is_active() { Some(r) } else { None }
+    } else {
+        None
+    };
+    let rn: Option<&RefNormalize> = rn_owned.as_ref();
+
     let mut pkg = Package::new();
 
     // Footer first so it keeps rId1 (parity with the RS2 layout).
@@ -78,7 +88,7 @@ pub fn build(
         None
     };
 
-    let document_xml = render_document(plan, &mut pkg, footer_rid.as_deref(), source);
+    let document_xml = render_document(plan, &mut pkg, footer_rid.as_deref(), source, rn);
 
     let file = std::fs::File::create(output)?;
     let mut zip = zip::ZipWriter::new(file);
@@ -199,6 +209,7 @@ fn render_document(
     pkg: &mut Package,
     footer_rid: Option<&str>,
     source: Option<&HashMap<String, SourceBlock>>,
+    rn: Option<&RefNormalize>,
 ) -> String {
     let mut groups: Vec<(Option<String>, Vec<&PlanBlock>)> = Vec::new();
     for block in &plan.blocks {
@@ -223,7 +234,7 @@ fn render_document(
         let section: Option<&PlanSection> = find_section(key);
         let mut elems: Vec<BodyElem> = Vec::new();
         for b in blocks {
-            elems.extend(render_block(&plan.document, b, pkg, source));
+            elems.extend(render_block(&plan.document, b, pkg, source, rn));
         }
 
         if gi == last_idx {
@@ -271,6 +282,7 @@ fn render_block(
     block: &PlanBlock,
     pkg: &mut Package,
     source: Option<&HashMap<String, SourceBlock>>,
+    rn: Option<&RefNormalize>,
 ) -> Vec<BodyElem> {
     // Overlay: if ref + source available, reuse source paragraph (text +
     // heading level); plan.format is applied on top. Mirrors .NET
@@ -335,6 +347,47 @@ fn render_block(
         })
     };
 
+    // Reference normalization (RS9): rewrite "[n] content" as
+    // bookmarkStart + "[n]" + bookmarkEnd + tab + content, augmenting
+    // the pPr with default hanging indent + a tab stop when absent.
+    if let Some(rn) = rn {
+        let is_ref = role == "reference" || refs::split_leading_ref(&text).is_some();
+        if is_ref {
+            if let Some((n, content)) = refs::split_leading_ref(&text) {
+                if let Some(&bid) = rn.refs.get(&n) {
+                    let rpr = run_properties(block.format.as_ref(), doc, None, false);
+                    let mut runs = String::new();
+                    runs.push_str(&format!(
+                        r#"<w:bookmarkStart w:id="{bid}" w:name="{BOOKMARK_PREFIX}{n}"/>"#
+                    ));
+                    runs.push_str(&format!(
+                        r#"<w:r>{rpr}<w:t xml:space="preserve">[{n}]</w:t></w:r>"#
+                    ));
+                    runs.push_str(&format!(r#"<w:bookmarkEnd w:id="{bid}"/>"#));
+                    runs.push_str(&format!(r#"<w:r>{rpr}<w:tab/></w:r>"#));
+                    if !content.is_empty() {
+                        runs.push_str(&format!(
+                            r#"<w:r>{rpr}<w:t xml:space="preserve">{}</w:t></w:r>"#,
+                            xml_escape(&content)
+                        ));
+                    }
+                    let mut ppr_inner = paragraph_properties_inner(block.format.as_ref(), doc);
+                    if !ppr_inner.contains("<w:ind") {
+                        ppr_inner.push_str(&format!(
+                            r#"<w:ind w:hangingChars="{DEFAULT_HANGING_CHARS}"/>"#
+                        ));
+                    }
+                    if !ppr_inner.contains("<w:tabs") {
+                        ppr_inner.push_str(&format!(
+                            r#"<w:tabs><w:tab w:val="left" w:pos="{DEFAULT_TAB_POSITION}"/></w:tabs>"#
+                        ));
+                    }
+                    return vec![BodyElem::Para(Para { ppr_inner, run: runs })];
+                }
+            }
+        }
+    }
+
     let ppr_inner = paragraph_properties_inner(block.format.as_ref(), doc);
     let rpr = run_properties(block.format.as_ref(), doc, heading_level, role == "title");
 
@@ -370,7 +423,7 @@ fn render_block(
     } else if role == "pagenumber" {
         format!(r#"<w:fldSimple w:instr=" PAGE "><w:r>{rpr}<w:t>1</w:t></w:r></w:fldSimple>"#)
     } else {
-        render_text_segments(&text, block.format.as_ref(), doc, heading_level, role == "title")
+        render_text_segments(&text, block.format.as_ref(), doc, heading_level, role == "title", rn)
     };
 
     vec![BodyElem::Para(Para { ppr_inner, run })]
@@ -476,20 +529,22 @@ fn image_content_type(ext: &str) -> &'static str {
 fn caption_para(doc: &PlanDocument, text: &str) -> Para {
     Para {
         ppr_inner: r#"<w:jc w:val="center"/>"#.to_string(),
-        run: render_text_segments(text, None, doc, None, false),
+        run: render_text_segments(text, None, doc, None, false, None),
     }
 }
 
 /// Emit one or more <w:r> for a piece of generate-mode text, splitting it
 /// with autoformat (H2O / m^2 / x^2 etc) so subscript/superscript flow
-/// automatically. `base` is the paragraph format applied as-is; each
-/// segment's vertical_align overrides it.
+/// automatically. When `rn` is Some, superscript segments are scanned for
+/// [n] / [n,m] / [n-m] citations and resolved into <w:fldSimple> REF
+/// fields pointing at the corresponding _Ref_ref_<n> bookmark.
 fn render_text_segments(
     text: &str,
     base: Option<&PlanFormat>,
     doc: &PlanDocument,
     heading: Option<u8>,
     is_title: bool,
+    rn: Option<&RefNormalize>,
 ) -> String {
     let mut out = String::new();
     for seg in autoformat::split(text) {
@@ -498,6 +553,28 @@ fn render_text_segments(
             overlay.vertical_align = Some(va.clone());
         }
         let rpr = run_properties(Some(&overlay), doc, heading, is_title);
+
+        // Superscript + citation substitution (RS9 phase 2).
+        if let Some(rn) = rn {
+            if seg.vertical_align.as_deref() == Some("superscript") {
+                if let Some(pieces) = refs::split_super_for_citations(&seg.text, &rn.refs) {
+                    for piece in pieces {
+                        match piece {
+                            refs::CitPiece::Text(s) if s.is_empty() => {}
+                            refs::CitPiece::Text(s) => out.push_str(&format!(
+                                r#"<w:r>{rpr}<w:t xml:space="preserve">{}</w:t></w:r>"#,
+                                xml_escape(&s)
+                            )),
+                            refs::CitPiece::Ref(n) => out.push_str(&format!(
+                                r#"<w:fldSimple w:instr=" REF {BOOKMARK_PREFIX}{n} \h "><w:r>{rpr}<w:t>{n}</w:t></w:r></w:fldSimple>"#
+                            )),
+                        }
+                    }
+                    continue;
+                }
+            }
+        }
+
         out.push_str(&format!(
             r#"<w:r>{rpr}<w:t xml:space="preserve">{}</w:t></w:r>"#,
             xml_escape(&seg.text)
@@ -539,7 +616,7 @@ fn build_table(doc: &PlanDocument, rows: &[Vec<String>]) -> String {
             } else {
                 None
             };
-            let runs = render_text_segments(cell, base_fmt.as_ref(), doc, None, false);
+            let runs = render_text_segments(cell, base_fmt.as_ref(), doc, None, false, None);
             let tc_borders = if is_header {
                 r#"<w:tcBorders><w:bottom w:val="single" w:sz="6"/></w:tcBorders>"#
             } else {
