@@ -1,0 +1,40 @@
+{
+  "document": {
+    "cnFont": "宋体",
+    "enFont": "Times New Roman"
+  },
+  "blocks": [
+    {
+      "role": "body",
+      "text": "这是 12 pt 字体,首行缩进 2 字符。",
+      "format": {
+        "fontPt": 12,
+        "firstLineChars": "200"
+      }
+    },
+    {
+      "role": "body",
+      "text": "这是 14 pt 字体,首行缩进 2 字符。",
+      "format": {
+        "fontPt": 14,
+        "firstLineChars": "200"
+      }
+    },
+    {
+      "role": "body",
+      "text": "这是 16 pt 字体,首行缩进 2 字符。",
+      "format": {
+        "fontPt": 16,
+        "firstLineChars": "200"
+      }
+    },
+    {
+      "role": "body",
+      "text": "这是 18 pt 字体(小二),首行缩进 2 字符。",
+      "format": {
+        "fontPt": 18,
+        "firstLineChars": "200"
+      }
+    }
+  ]
+}

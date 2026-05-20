@@ -705,14 +705,29 @@ fn render_block(
                             r#"<w:tabs><w:tab w:val="left" w:pos="{DEFAULT_TAB_POSITION}"/></w:tabs>"#
                         ));
                     }
+                    // Paragraph mark rPr: Word uses this as the reference font
+                    // for firstLineChars / hangingChars computation. Must be
+                    // the LAST child of pPr per OOXML schema.
+                    let mark_rpr = run_properties(block.format.as_ref(), doc, None, false);
+                    if !mark_rpr.is_empty() {
+                        ppr_inner.push_str(&mark_rpr);
+                    }
                     return vec![BodyElem::Para(Para { ppr_inner, run: runs })];
                 }
             }
         }
     }
 
-    let ppr_inner = paragraph_properties_inner(block.format.as_ref(), doc, heading_level);
+    let mut ppr_inner = paragraph_properties_inner(block.format.as_ref(), doc, heading_level);
     let rpr = run_properties(block.format.as_ref(), doc, heading_level, role == "title");
+    // Paragraph mark rPr (last child of pPr): Word uses this for the
+    // paragraph mark font AND -- more importantly -- as the character-
+    // width reference for firstLineChars / hangingChars indent
+    // computation. Without it, Word falls back to an internal default
+    // and the chars-based indent doesn't track the paragraph's font.
+    if !rpr.is_empty() {
+        ppr_inner.push_str(&rpr);
+    }
 
     // Overlay with per-run fidelity: emit one <w:r> per source run so the
     // source's inline bold/italic/sub-superscript/tab survive reformat.
