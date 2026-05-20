@@ -68,6 +68,19 @@ pub struct PlanBlock {
     pub format: Option<PlanFormat>,
     pub table: Option<PlanTable>,
     pub image: Option<PlanImage>,
+    pub equation: Option<PlanEquation>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct PlanEquation {
+    pub text: Option<String>,
+    /// Raw OMML (`<m:oMath>...</m:oMath>` or a full `<m:oMathPara>`).
+    /// Inserted as-is; the m: namespace prefix is declared on the document
+    /// root by the engine.
+    pub xml: Option<String>,
+    /// "inline" (default) or "display".
+    pub display_mode: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]

@@ -25,6 +25,7 @@ const R_NS: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relati
 const WP_NS: &str = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
 const A_NS: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
 const PIC_NS: &str = "http://schemas.openxmlformats.org/drawingml/2006/picture";
+const M_NS: &str = "http://schemas.openxmlformats.org/officeDocument/2006/math";
 
 /// OPC relationship/parts accumulator. footer and media both flow
 /// through here; rIds are allocated in registration order.
@@ -273,7 +274,7 @@ fn render_document(
 
     format!(
         r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="{W_NS}" xmlns:r="{R_NS}" xmlns:wp="{WP_NS}" xmlns:a="{A_NS}" xmlns:pic="{PIC_NS}"><w:body>{body}</w:body></w:document>"#
+<w:document xmlns:w="{W_NS}" xmlns:r="{R_NS}" xmlns:wp="{WP_NS}" xmlns:a="{A_NS}" xmlns:pic="{PIC_NS}" xmlns:m="{M_NS}"><w:body>{body}</w:body></w:document>"#
     )
 }
 
@@ -314,6 +315,10 @@ fn render_block(
             out.push(BodyElem::Para(caption_para(doc, cap)));
         }
         return out;
+    }
+
+    if role == "equation" || block.equation.is_some() {
+        return vec![BodyElem::Para(equation_para(doc, block))];
     }
 
     if role == "table" || block.table.is_some() {
@@ -523,6 +528,93 @@ fn image_content_type(ext: &str) -> &'static str {
         "emf" => "image/x-emf",
         "wmf" => "image/x-wmf",
         _ => "image/png",
+    }
+}
+
+/// Equation paragraph. Mirrors .NET BuildEquationParagraph: when xml is
+/// supplied, embed it raw (caller-provided OMML); otherwise render the
+/// text fallback. Display mode centers the paragraph. OMML height is
+/// content-driven so line-spacing is intentionally skipped when xml is set
+/// (matches the .NET comment about exact line height truncating tall math).
+fn equation_para(doc: &PlanDocument, block: &PlanBlock) -> Para {
+    let eq = block.equation.as_ref();
+    let xml = eq
+        .and_then(|e| e.xml.as_deref())
+        .filter(|s| !s.trim().is_empty());
+    let text = eq.and_then(|e| e.text.as_deref()).unwrap_or("");
+    let display = eq
+        .and_then(|e| e.display_mode.as_deref())
+        .map(|s| s.eq_ignore_ascii_case("display"))
+        .unwrap_or(false);
+
+    let pf = block.format.as_ref();
+    let mut ppr = String::new();
+
+    let align = if display {
+        Some("center")
+    } else {
+        pf.and_then(|f| f.align.as_deref())
+    };
+    if let Some(a) = align.and_then(map_align) {
+        ppr.push_str(&format!(r#"<w:jc w:val="{a}"/>"#));
+    }
+
+    let first_line = pf.and_then(|f| f.first_line_indent.clone());
+    let hanging = pf.and_then(|f| f.hanging_indent.clone());
+    if first_line.is_some() || hanging.is_some() {
+        let mut ind = String::from("<w:ind");
+        if let Some(v) = first_line {
+            ind.push_str(&format!(r#" w:firstLine="{}""#, xml_escape(&v)));
+        }
+        if let Some(v) = hanging {
+            ind.push_str(&format!(r#" w:hanging="{}""#, xml_escape(&v)));
+        }
+        ind.push_str("/>");
+        ppr.push_str(&ind);
+    }
+
+    let before = pf.and_then(|f| f.before_spacing.clone());
+    let after = pf.and_then(|f| f.after_spacing.clone());
+    let line = if xml.is_some() {
+        None
+    } else {
+        pf.and_then(|f| f.line_spacing.clone())
+            .or_else(|| doc.line_spacing.map(|ls| ((240.0 * ls).round() as i64).to_string()))
+    };
+    if before.is_some() || after.is_some() || line.is_some() {
+        let mut sp = String::from("<w:spacing");
+        if let Some(v) = before {
+            sp.push_str(&format!(r#" w:before="{}""#, xml_escape(&v)));
+        }
+        if let Some(v) = after {
+            sp.push_str(&format!(r#" w:after="{}""#, xml_escape(&v)));
+        }
+        if let Some(v) = line {
+            sp.push_str(&format!(r#" w:line="{}" w:lineRule="auto""#, xml_escape(&v)));
+        }
+        sp.push_str("/>");
+        ppr.push_str(&sp);
+    }
+
+    let run = if let Some(x) = xml {
+        // Insert OMML XML as-is. The m: namespace prefix is declared on
+        // the document root, so the caller-supplied element resolves.
+        x.to_string()
+    } else if !text.is_empty() {
+        let rpr = run_properties(None, doc, None, false);
+        format!(
+            r#"<w:r>{rpr}<w:t xml:space="preserve">{}</w:t></w:r>"#,
+            xml_escape(text)
+        )
+    } else {
+        // Empty equation: emit an empty run so the paragraph is well-formed.
+        let rpr = run_properties(None, doc, None, false);
+        format!("<w:r>{rpr}</w:r>")
+    };
+
+    Para {
+        ppr_inner: ppr,
+        run,
     }
 }
 
