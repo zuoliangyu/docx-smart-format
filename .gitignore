@@ -1,18 +1,3 @@
-# engine runtime artifacts — distributed via GitHub Releases, not committed
-engine/runtime/
-
-# .NET build outputs
-engine/src/bin/
-engine/src/obj/
-**/bin/
-**/obj/
-
-# .NET user-specific files
-*.user
-*.suo
-*.userprefs
-*.usertasks
-
 # Visual Studio / Rider / VS Code
 .vs/
 .idea/
@@ -20,15 +5,6 @@ engine/src/obj/
 !.vscode/settings.json
 !.vscode/launch.json
 !.vscode/extensions.json
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-.venv/
-.env/
-venv/
-env/
 
 # OS junk
 .DS_Store
@@ -51,9 +27,6 @@ scratch/
 # Output artifacts from running the skill locally
 *.result.docx
 analysis.json.tmp
-
-# Golden harness scratch (snapshots ARE committed; .work is not)
-tests/golden/.work/
 
 # Rust engine build output
 engine-rs/target/

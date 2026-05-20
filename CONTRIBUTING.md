@@ -5,78 +5,51 @@
 ## 仓库结构速记
 
 - `SKILL.md`：LLM 入口。规则修改优先在这里及 `references/` 中体现。
-- `references/`：规则与能力清单。**修改这些会直接改变 LLM 行为**，请同步考虑是否影响 `scripts/sample-*.json`。
+- `references/`：规则与能力清单。**修改这些会直接改变 LLM 行为**，请同步考虑是否影响样例 JSON。
 - `references/format-plan-schema.md`：LLM 唯一契约 FormatPlan 的字段定义。
-- `scripts/validate_decision.py`：旧版 decision 结构校验器（FormatPlan 校验器待补）。
-- `tests/golden/`：行为回归网（架构重写安全网）。改引擎后必须 `run.ps1 -Mode verify`。
+- `engine-rs/`：Rust 引擎源码 (Cargo)；详见 `engine-rs/README.md`。
+- `engine-rs/target/`：本地 `cargo build --release` 出来的产物,**不要提交到 git**(已在 `.gitignore`)。
+- `dist/`：测试包源（README、samples、OMML 速查表）。`dist/docx-auto-template-engine.exe` 和 `dist/output/` 是构建产物,gitignored。
 - `agents/openai.yaml`：Codex/OpenAI agent 元数据。
-- `engine/src/`：C# 引擎源代码（.NET 8）。
-- `engine/runtime/`：本地 `dotnet publish` 出来的产物，**不要提交到 git**（已在 `.gitignore`）。
 
 ## 本地环境
 
-| 工具         | 用途                                | 推荐版本    |
-|--------------|-------------------------------------|-------------|
-| .NET SDK     | 构建引擎                            | 8.0 或更高  |
-| Python       | 跑 `validate_decision.py`           | 3.10 或更高 |
-| PowerShell   | Windows 上运行 `build.ps1` 与脚本   | 5.1+ / 7    |
-| Bash         | Linux/macOS 上运行 `build.sh`       | 4+          |
-| Git          | 版本控制                            | 任意近期版本|
+| 工具       | 用途                                          | 推荐版本    |
+|------------|-----------------------------------------------|-------------|
+| Rust       | 构建引擎 (`cargo build`)                      | 1.85+       |
+| Git        | 版本控制                                       | 任意近期版本|
+| PowerShell | Windows 上测试运行                             | 5.1+ / 7    |
+| Word / WPS | 人工校验产物 docx 渲染                         | 任意现代版  |
+
+**不需要**装 .NET / Office / Python 来构建或运行引擎。
 
 ## 构建引擎
 
-> Skill 的日常使用者**不需要**做这一步，只有要改 C# 代码、要发布新 RID、或者要在非 Windows 平台上跑引擎时才需要。
-
 ```powershell
-# Windows
-.\build.ps1                       # 默认 RID = win-x64
-.\build.ps1 -Rid linux-x64        # 指定 RID
-
-# Linux / macOS
-./build.sh                        # 默认 RID = linux-x64
-./build.sh --rid osx-arm64        # 指定 RID
+cd engine-rs
+cargo build --release
+# 产物: target/release/docx-auto-template-engine.exe (Windows)
+#       target/release/docx-auto-template-engine     (Linux/macOS)
 ```
 
-脚本会调用：
-
-```bash
-dotnet publish engine/src/docx-auto-template-engine.csproj \
-  -c Release \
-  -r <RID> \
-  --self-contained true \
-  /p:PublishSingleFile=false \
-  -o engine/runtime
-```
-
-发布到 `engine/runtime/` 后，`SKILL.md` 中描述的 `analyze` / `apply` / `render` 命令即可使用。
+`Cargo.toml` 已开 `opt-level = "z"` + LTO + strip + panic=abort，release 体积 ~520 KB。
+跨平台编译: `cargo build --release --target x86_64-unknown-linux-gnu` 等。
 
 ## 跑测试与校验
 
-- 校验决策 JSON：
+引擎当前没有自动化测试套件。变更后请:
 
-  ```powershell
-  python scripts\validate_decision.py scripts\sample-decision.json
-  ```
-
-  应输出 `[OK] decision.json 结构合法`。CI 会在每次 PR 上跑这一步。
-
-- 构建检查：
-
-  ```powershell
-  dotnet build engine/src/docx-auto-template-engine.csproj -c Release
-  ```
-
-  这是 CI 在 PR 上的最低门槛之一。
-
-- 端到端 smoke：手工跑一遍 `scripts/sample-render-spec.json`，确认生成的 `.docx` 能用 Word 正常打开。
+1. **构建检查**:`cargo build --release` 必须无 error。
+2. **结构良构性 smoke**:对 `dist/samples/0*.json` 全部生成 docx,Python 解压检查关键 OOXML 元素计数 (参考各 RS 提交 message 的 "Verified" 段落)。
+3. **真实 Word 渲染回归**:打开生成的 docx 人工确认。已踩过/修复的渲染问题见 `engine-rs/README.md` 的"设计要点(踩坑后归档)"。
 
 ## 提交规范
 
 ### 分支与 PR
 
 - 从 `main` 切出工作分支，命名建议 `feat/<topic>` / `fix/<topic>` / `docs/<topic>` / `chore/<topic>`。
-- PR 描述请说明：**做了什么**、**为什么这么做**、**怎么验证**。
-- 影响 LLM 行为（`SKILL.md` / `references/`）的改动，请说明对模板与决策 JSON 的兼容性影响；必要时一并更新 `scripts/sample-*.json` 与 `CHANGELOG.md` 的 `[Unreleased]` 节。
+- PR 描述请说明:**做了什么**、**为什么这么做**、**怎么验证**(尤其是真 Word 上验过哪些样例)。
+- 影响 LLM 行为(`SKILL.md` / `references/`)的改动,请说明对 FormatPlan 字段的兼容性影响;必要时一并更新 `dist/samples/*.json` 与 `CHANGELOG.md` 的 `[Unreleased]` 节。
 
 ### Commit message
 
@@ -100,21 +73,20 @@ dotnet publish engine/src/docx-auto-template-engine.csproj \
 - `chore`：构建脚本、CI、依赖等。
 - `revert`：回滚。
 
-`scope` 建议：`skill` / `references` / `engine` / `scripts` / `ci` / `release`。
+`scope` 建议：`skill` / `references` / `engine` / `dist` / `ci` / `release`。
 
 ### 代码风格
 
-- C#：跟随 `engine/src/` 现有风格；优先简洁清晰，不要为未来需求添加预留开关。
-- Python：`scripts/` 下兼容 3.10，类型注解优先。
-- Markdown：中文为主、英文术语保留原文；标题层级与现有 `references/*.md` 一致。
+- Rust:跟随 `engine-rs/src/` 现有风格;`cargo fmt` + `cargo clippy -- -D warnings`。
+- Markdown:中文为主、英文术语保留原文;标题层级与现有 `references/*.md` 一致。
 
 ## Issue 规范
 
 模板见 `.github/ISSUE_TEMPLATE/`。提交前请确认：
 
 - 已搜索过相似 issue。
-- 列出能复现的最小步骤；附 decision JSON / RenderSpec 时务必脱敏。
-- 若涉及生成 `.docx` 行为异常，请说明用 Word / WPS / LibreOffice 哪个打开、版本号。
+- 列出能复现的最小步骤;附 FormatPlan JSON 时务必脱敏。
+- 若涉及生成 `.docx` 行为异常,请说明用 Word / WPS / LibreOffice 哪个打开、版本号,**最好把生成的 docx 文件本身一并发上来**(看 XML 比看截图准确)。
 
 安全相关 issue 走 [SECURITY.md](SECURITY.md) 私下渠道，**不要公开提**。
 

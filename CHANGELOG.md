@@ -32,6 +32,10 @@
     字段(auto/exact/atLeast)；docx.rs hf 部件机制泛化为多 HfPart + 自动
     emit `word/settings.xml` 含 `<w:evenAndOddHeaders/>`。完成后 Rust 引擎对
     "毕业论文重排"场景与 .NET 完全等价,**用户可不装 .NET**。
+  - **RS13 模板化结构重排**:`build --template <docx>` 从 template 复制
+    `word/styles.xml` 到输出 + 注册 styles 关系。`PlanFormat.styleId` 块用
+    `<w:pStyle w:val="..."/>` 引用模板样式。完成后 .NET 全部独有能力均已迁移,
+    .NET 引擎从仓库移除(见 Removed)。
 - `engine-rs/README.md`：Rust 引擎说明、命令面、能力清单、踩坑归档。
 - `dist/samples/OMML-CHEATSHEET.md`：OMML 公式写法速查表 + Cambria Math 字体提示硬性要求。
 - 顶层 README 加"引擎实现：.NET（稳定） 与 Rust（alpha）"对照表。
@@ -43,14 +47,22 @@
   - 发布改单文件 + 压缩，自包含产物 ~60-70MB → 单个 38MB exe，仍零安装（不需 Office/WPS/.NET）。
 - `decision-schema.md` 移除，由 `format-plan-schema.md` 取代。
 
+### Removed
+- **.NET 引擎完全移除**(`engine/src/` 全部 9 个 .cs 文件 + `build.ps1`/`build.sh` +
+  旧 decision schema 样例 + `validate_decision.py` + `tests/golden/` 回归网)。
+  Rust 引擎在 RS0–RS13 之间已完成 100% 能力 parity 并经真实 Word 渲染验证,
+  .NET 路径不再需要保留。仓库从此**只有一个引擎**:Rust。
+- 顶层 README 移除"双引擎对照"段、安装方式 .NET 部分;CONTRIBUTING 改为
+  Rust-only,不再要求贡献者安装 .NET / Python。
+- 用户层面:不再有 `apply` / `render` 命令(全部迁移到 `build` + FormatPlan);
+  不再有 `--template-preset` 参数(改为 `document.preset` 字段)。
+
 ### Deferred / Known gaps
-- 模板化结构重排 (`apply --template <docx>`，按用户提供模板做样式映射)：
-  Rust 引擎暂未覆盖；`apply` / `render` 作为遗留命令仍在 .NET 引擎可用。
-  毕业论文预设已由 RS12 迁到 Rust；逐部件页眉的奇偶 + 首页不同 由 RS12 部分
-  覆盖（thesis 预设里固定 4 部件）。
-- FormatPlan 专用校验器待补；`validate_decision.py` 仍只校验旧 decision。
-- Rust 引擎 `analyze` 鲁棒性：仅在引擎自产 docx 上验过 100% 字段比对；
-  野生 Word/WPS 输入未测。
+- Rust 引擎 `analyze` 鲁棒性:仅在引擎自产 docx 上验过 100% 字段比对;
+  野生 Word/WPS 输入(含 latentStyles / style 别名 / 复杂 basedOn 链)未测。
+- 逐部件页眉/页脚的任意定制(单节多 default 文件、首页不同的内容差异等):
+  FormatPlan 暴露面有限;毕业论文预设的 4 部件是 hardcoded,通用情景待扩展。
+- FormatPlan 专用校验器待补。
 
 ### Fixed
 - Rust 引擎在真 Word 渲染中暴露的 4 处问题（已修复并通过实测）：

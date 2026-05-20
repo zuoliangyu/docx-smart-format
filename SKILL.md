@@ -7,9 +7,8 @@ description: 读取 `.docx` 或从零生成 `.docx`：LLM 判断文档类型、�
 
 ## 平台与运行依赖
 
-- **当前仅支持 Windows x64**：`engine/runtime/docx-auto-template-engine.exe`。macOS / Linux 暂不支持。
-- 引擎用微软官方 `DocumentFormat.OpenXml` 直接读写 OOXML，**不依赖电脑安装 Word / WPS / Office，也不联网**。
-- `engine/src` 仅为源码，运行时不依赖；正常调用 skill 时忽略它。
+- **跨平台**:Rust 单文件 `docx-auto-template-engine.exe`(~520 KB),零运行时依赖,**不需要 Word / WPS / Office / .NET**,不联网。
+- 默认产物 Windows x64;Linux / macOS 可在 `engine-rs/` 下 `cargo build --release` 自行编译。
 
 ## 核心模型
 
@@ -26,13 +25,18 @@ LLM 输出**唯一一种契约**：`FormatPlan`。引擎把它降级为内部表
 
 ```powershell
 # 1. 重排现有文档时，先分析源 docx（从零生成可跳过）
-<skill-dir>\engine\runtime\docx-auto-template-engine.exe analyze --input <input.docx> --output <analysis.json>
+docx-auto-template-engine.exe analyze --input <input.docx> --output <analysis.json>
 
 # 2. 写回：有 --source 即重排，无 --source 即从零生成
-<skill-dir>\engine\runtime\docx-auto-template-engine.exe build --plan <format-plan.json> --output <result.docx> [--source <input.docx>] [--template <template.docx>] [--normalize-references]
+docx-auto-template-engine.exe build --plan <format-plan.json> --output <result.docx> `
+    [--source <input.docx>] [--template <template.docx>] [--normalize-references]
 ```
 
 `analyze` 输出里每个 body 块有稳定 `path`（如 `/body/paragraph[2]`），就是 `FormatPlan` 块里 `ref` 要填的值。
+
+**额外能力**：
+- 毕业论文一键预设:`document.preset: "undergraduate-thesis"` + `thesisUniversity` / `thesisTitle`,引擎自动注入字体字号缩进 + 奇偶页眉 + 页脚页码 + 自动开 normalize-references。
+- 模板化结构重排:`build --template <docx>` 把模板的 `word/styles.xml` 拷进输出,FormatPlan 块用 `format.styleId` 引用模板里定义的样式。
 
 ## 模式判定（机械规则）
 
@@ -119,15 +123,6 @@ else:
 - 图注表注归属不确定 → 保留相邻顺序
 - 是否分节不确定 → 不新建分节
 - 是否编号不确定 → 不编号，除非模板明确强制
-
-## 遗留能力（仍支持，FormatPlan 暂未覆盖）
-
-以下两项能力 FormatPlan/`build` 暂无等价表达，**仍通过遗留命令支持，未删除**：
-
-- **毕业论文预设**：`apply ... --template-preset builtin-undergraduate-thesis`（自动启用参考文献规范化）。
-- **模板化结构重排**：`apply --source <docx> --decision <decision.json> --template <template.docx>`，按模板样式做结构映射合并。
-
-需要这两项时使用遗留命令；其余一律走 `build` + FormatPlan。两者将在 FormatPlan 达到能力对等后再行收敛。
 
 ## 资源索引
 

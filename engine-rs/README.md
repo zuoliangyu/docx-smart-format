@@ -4,9 +4,9 @@
 跨平台**——同样的 `FormatPlan` JSON 契约，同样的 OOXML 输出能力，但比 .NET
 版本小 95 倍且不依赖 Office / WPS / .NET。
 
-状态：**alpha**。`build` / `analyze` 已覆盖 SKILL.md 描述的大部分能力并在真
-Word 上实测渲染通过；`apply` / `render` 这两条 legacy 命令以及它们承载的
-"毕业论文预设" / "模板化结构重排" 暂未在 Rust 引擎实现，仍走 .NET 引擎。
+状态：**alpha 但已是仓库的唯一引擎**。覆盖 SKILL.md 描述的全部能力,
+包含毕业论文预设(RS12)与模板化结构重排(RS13),并在真 Word 上实测渲染通过。
+.NET 引擎已从仓库移除。
 
 ------------------------------------------------------------------------
 
@@ -53,13 +53,10 @@ docx-auto-template-engine build   --plan <format-plan.json> --output <docx>
 
 | | 内容 | 风险 |
 |---|---|---|
-| 1 | analyze 鲁棒化：当前只在引擎自产 docx 上做过 100% 字段比对；野生 Word/WPS 文档（含 latentStyles / style 别名 / 复杂 basedOn 链等）未测 | 中 |
-| 2 | 毕业论文预设（`builtin-undergraduate-thesis`）：FormatPlan 未暴露 | 中 |
-| 3 | 模板化结构重排（apply --template <template.docx>）：FormatPlan overlay 暂只做段级文本+格式重用，无模板结构映射 | 中 |
-| 4 | 逐部件页眉控制（不同节绑定不同 header XML 文件）：FormatPlan 只暴露 `document.headerFooter` 全局开关 | 中 |
-| 5 | 横向竖排页码：只暴露 `headerFooter.pageNumber: "left-vertical"`，坐标/方向/边框等定制项未开放 | 低 |
-
-带能力损失的全替代 .NET 需要补齐 #2–#4。在那之前 `apply` / `render` 必须保留。
+| 1 | analyze 鲁棒化:当前只在引擎自产 docx 上做过 100% 字段比对;野生 Word/WPS 文档(含 latentStyles / style 别名 / 复杂 basedOn 链等)未测 | 中 |
+| 2 | 逐部件页眉控制(不同节绑定不同 header XML 文件):FormatPlan 只暴露 `document.headerFooter` 全局开关 + 预设固定 4 部件 | 中 |
+| 3 | 横向竖排页码:只暴露 `headerFooter.pageNumber: "left-vertical"`,坐标/方向/边框等定制项未开放 | 低 |
+| 4 | FormatPlan 专用校验器尚未提供 | 低 |
 
 ------------------------------------------------------------------------
 
@@ -101,19 +98,17 @@ cargo build --release
 
 ## 测试
 
-仓库根的 `tests/golden/` 是 .NET 引擎的 golden 网（架构重写时建立，见
-`tests/golden/README.md`）。Rust 引擎不复用这套（两个引擎的 OOXML 输出必然不同
-但等价，逐字节比对没意义），改用：
+引擎当前没有自动化测试套件。验证方式:
 
-1. **结构良构性测试**：每个切片提交时都跑过 6 份样例（`dist/samples/0*.json`），
-   解压产物、检查关键 OOXML 元素计数与位置（参考各 RS 提交 message 的 "Verified"
-   段落）。
-2. **真实 Word 渲染回归**：由测试者打开 docx 人工确认。已踩过/修复的渲染问题：
+1. **结构良构性测试**:对 `dist/samples/0*.json` 全部样例跑 build,
+   解压产物、检查关键 OOXML 元素计数与位置(参考各 RS 提交 message 的 "Verified"
+   段落)。
+2. **真实 Word 渲染回归**:由测试者打开 docx 人工确认。已踩过/修复的渲染问题:
    - REF 字段中数字未上标 → 改 `<w:fldSimple>` 为复杂字段 + 每 run 带 rPr
-   - 表注在表下 → SKILL 规定表注默认在表上，调换 caption emit 顺序
+   - 表注在表下 → SKILL 规定表注默认在表上,调换 caption emit 顺序
    - OMML 当文本渲染 → 每个 `<m:r>` 必须带 `<w:rFonts w:ascii="Cambria Math"/>`
-     字体提示（详见 `dist/samples/OMML-CHEATSHEET.md`）
-   - F9 更新后参考文献变 `[[1]]` → bookmark 改为只包数字，方括号在外
+     字体提示(详见 `dist/samples/OMML-CHEATSHEET.md`)
+   - F9 更新后参考文献变 `[[1]]` → bookmark 改为只包数字,方括号在外
 
 ------------------------------------------------------------------------
 
