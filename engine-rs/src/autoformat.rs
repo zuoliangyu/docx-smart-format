@@ -84,7 +84,11 @@ fn try_read_script(chars: &[char], i: usize) -> Option<(Segment, usize)> {
     }
     let start = i + 1;
     let c = *chars.get(start)?;
-    let va = if marker == '^' { "superscript" } else { "subscript" };
+    let va = if marker == '^' {
+        "superscript"
+    } else {
+        "subscript"
+    };
     if c == '{' {
         // ^{XXX}
         let mut end = start + 1;
@@ -211,9 +215,45 @@ fn try_split_chemistry(token: &str) -> Option<Vec<Segment>> {
 
 /// Recognized scientific units that can carry a ²/³ exponent suffix.
 const UNITS: &[&str] = &[
-    "mm", "cm", "dm", "km", "nm", "um", "\u{03bc}m", "\u{00b5}m", "m", "L", "mL", "\u{03bc}L",
-    "\u{00b5}L", "g", "kg", "mg", "s", "min", "h", "Hz", "kHz", "MHz", "GHz", "Pa", "kPa", "MPa",
-    "V", "mV", "A", "mA", "W", "kW", "J", "kJ", "N", "mol", "\u{2103}", "\u{00b0}C", "K",
+    "mm",
+    "cm",
+    "dm",
+    "km",
+    "nm",
+    "um",
+    "\u{03bc}m",
+    "\u{00b5}m",
+    "m",
+    "L",
+    "mL",
+    "\u{03bc}L",
+    "\u{00b5}L",
+    "g",
+    "kg",
+    "mg",
+    "s",
+    "min",
+    "h",
+    "Hz",
+    "kHz",
+    "MHz",
+    "GHz",
+    "Pa",
+    "kPa",
+    "MPa",
+    "V",
+    "mV",
+    "A",
+    "mA",
+    "W",
+    "kW",
+    "J",
+    "kJ",
+    "N",
+    "mol",
+    "\u{2103}",
+    "\u{00b0}C",
+    "K",
 ];
 
 fn try_split_unit_exponent(token: &str) -> Option<Vec<Segment>> {
@@ -227,7 +267,7 @@ fn try_split_unit_exponent(token: &str) -> Option<Vec<Segment>> {
     let base_str = &token[..token.len() - last.len_utf8()];
     // Longest-match unit prefix; UNITS already lists e.g. mm/m so order
     // doesn't matter for correctness as long as it matches exactly.
-    if UNITS.iter().any(|&u| u == base_str) {
+    if UNITS.contains(&base_str) {
         Some(vec![
             Segment::plain(base_str),
             Segment::with("superscript", &last.to_string()),

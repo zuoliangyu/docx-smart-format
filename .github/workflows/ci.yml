@@ -7,64 +7,112 @@ on:
     branches: [main]
 
 jobs:
-  validate-decision:
-    name: Validate sample decision JSON
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Validate sample-decision.json
-        run: python scripts/validate_decision.py scripts/sample-decision.json
-
-  build-engine:
-    name: Build engine (${{ matrix.os }})
+  build-and-smoke:
+    name: Build & smoke test (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            rid: win-x64
           - os: ubuntu-latest
-            rid: linux-x64
+            exe_suffix: ""
+          - os: windows-latest
+            exe_suffix: ".exe"
           - os: macos-latest
-            rid: osx-arm64
+            exe_suffix: ""
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cargo cache
+        uses: actions/cache@v4
         with:
-          dotnet-version: "8.0.x"
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            engine-rs/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('engine-rs/Cargo.lock') }}
 
-      - name: Restore
-        run: dotnet restore engine/src/docx-auto-template-engine.csproj
+      - name: Build release engine
+        working-directory: engine-rs
+        run: cargo build --release --locked
 
-      - name: Build
-        run: dotnet build engine/src/docx-auto-template-engine.csproj -c Release --no-restore
-
-      - name: Publish (self-contained, ${{ matrix.rid }})
+      - name: Smoke test — build sample docx on every platform
+        shell: bash
         run: |
-          dotnet publish engine/src/docx-auto-template-engine.csproj `
-            -c Release `
-            -r ${{ matrix.rid }} `
-            --self-contained true `
-            -p:PublishSingleFile=false `
-            -o publish-${{ matrix.rid }}
-        shell: pwsh
+          set -euo pipefail
+          ENGINE="engine-rs/target/release/docx-auto-template-engine${{ matrix.exe_suffix }}"
+          test -x "$ENGINE"
+          mkdir -p ci-out
+          for plan in dist/samples/01-basic.json dist/samples/02-autoformat.json \
+                      dist/samples/04-vertical-pagenum.json dist/samples/05-omml-equation.json \
+                      dist/samples/07-thesis-preset.json dist/samples/09-firstline-scale-test.json; do
+            name=$(basename "$plan" .json)
+            "$ENGINE" build --plan "$plan" --output "ci-out/${name}.docx"
+            test -s "ci-out/${name}.docx"
+            echo "OK $name"
+          done
 
-      - name: Smoke test (Windows only — engine currently Windows-targeted)
-        if: matrix.os == 'windows-latest'
+      - name: Smoke test — references (with normalize-references)
+        shell: bash
         run: |
-          $exe = "publish-${{ matrix.rid }}/docx-auto-template-engine.exe"
-          if (-not (Test-Path $exe)) {
-            Write-Error "Engine binary not found at $exe"
+          set -euo pipefail
+          ENGINE="engine-rs/target/release/docx-auto-template-engine${{ matrix.exe_suffix }}"
+          "$ENGINE" build \
+            --plan dist/samples/03-references.json \
+            --output ci-out/03-references.docx \
+            --normalize-references
+          test -s ci-out/03-references.docx
+          echo "OK 03-references"
+
+      - name: Smoke test — template-apply (with --template)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ENGINE="engine-rs/target/release/docx-auto-template-engine${{ matrix.exe_suffix }}"
+          "$ENGINE" build \
+            --plan dist/samples/08-template-apply.json \
+            --template dist/samples/template.docx \
+            --output ci-out/08-template-apply.docx
+          test -s ci-out/08-template-apply.docx
+          echo "OK 08-template-apply"
+
+      - name: Smoke test — analyze round-trip
+        shell: bash
+        run: |
+          set -euo pipefail
+          ENGINE="engine-rs/target/release/docx-auto-template-engine${{ matrix.exe_suffix }}"
+          "$ENGINE" analyze --input ci-out/01-basic.docx --output ci-out/01-basic-analysis.json
+          test -s ci-out/01-basic-analysis.json
+          grep -q '"body"' ci-out/01-basic-analysis.json
+          echo "OK analyze round-trip"
+
+      - name: Verify binary size (alpha < 5 MB guardrail)
+        if: matrix.os != 'windows-latest'
+        shell: bash
+        run: |
+          ENGINE="engine-rs/target/release/docx-auto-template-engine${{ matrix.exe_suffix }}"
+          ls -lh "$ENGINE"
+          size_bytes=$(stat -c%s "$ENGINE" 2>/dev/null || stat -f%z "$ENGINE")
+          echo "binary size: $size_bytes bytes"
+          if [ "$size_bytes" -gt 5242880 ]; then
+            echo "ERROR: binary exceeded 5 MB guardrail"
             exit 1
-          }
-          Write-Host "Engine built: $exe"
-        shell: pwsh
+          fi
+
+  fmt-and-clippy:
+    name: rustfmt + clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: cargo fmt --check
+        working-directory: engine-rs
+        run: cargo fmt --all -- --check
+      - name: cargo clippy
+        working-directory: engine-rs
+        run: cargo clippy --release --locked -- -D warnings

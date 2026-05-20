@@ -64,7 +64,7 @@ fn local(name: &[u8]) -> &[u8] {
     }
 }
 
-fn attr<'a>(e: &'a quick_xml::events::BytesStart, key: &str) -> Option<String> {
+fn attr(e: &quick_xml::events::BytesStart, key: &str) -> Option<String> {
     e.attributes().flatten().find_map(|a| {
         if local(a.key.as_ref()) == key.as_bytes() {
             Some(String::from_utf8_lossy(&a.value).into_owned())
@@ -153,9 +153,7 @@ fn parse_styles(xml: &str) -> (Props, HashMap<String, StyleDef>) {
                             Ok(Event::Start(s)) if local(s.name().as_ref()) == b"rPr" => {
                                 parse_props(&mut reader, b"rPr", &mut defaults);
                             }
-                            Ok(Event::End(s)) if local(s.name().as_ref()) == b"rPrDefault" => {
-                                break
-                            }
+                            Ok(Event::End(s)) if local(s.name().as_ref()) == b"rPrDefault" => break,
                             Ok(Event::Eof) => break,
                             _ => {}
                         }
@@ -264,11 +262,7 @@ pub fn source_blocks(input: &str) -> std::io::Result<Vec<SourceBlock>> {
         .collect())
 }
 
-fn parse_document(
-    xml: &str,
-    defaults: &Props,
-    styles: &HashMap<String, StyleDef>,
-) -> Vec<Block> {
+fn parse_document(xml: &str, defaults: &Props, styles: &HashMap<String, StyleDef>) -> Vec<Block> {
     let mut reader = Reader::from_str(xml);
     let mut buf = Vec::new();
     let mut blocks = Vec::new();
@@ -390,9 +384,7 @@ fn heading_from_style(s: &str) -> Option<i32> {
 ///     for the analyze JSON's effective view, RS5-compatible),
 ///   - every <w:r>'s rPr toggles flow into one `SourceRun` per run,
 ///   - <w:tab/> is emitted as a separate run with kind="tab".
-fn parse_paragraph(
-    reader: &mut Reader<&[u8]>,
-) -> (String, Option<String>, Props, Vec<SourceRun>) {
+fn parse_paragraph(reader: &mut Reader<&[u8]>) -> (String, Option<String>, Props, Vec<SourceRun>) {
     let mut text = String::new();
     let mut style = None;
     let mut direct = Props::default();
@@ -458,8 +450,10 @@ fn parse_paragraph(
                     }
                 }
                 b"tab" if in_r > 0 => {
-                    let mut tab_cur = SourceRun::default();
-                    tab_cur.kind = Some("tab".to_string());
+                    let tab_cur = SourceRun {
+                        kind: Some("tab".to_string()),
+                        ..Default::default()
+                    };
                     // Close out current text run first (if any), then push the tab marker.
                     flush(&mut runs, &mut cur);
                     runs.push(tab_cur);
@@ -506,7 +500,9 @@ fn json_str(s: &str) -> String {
 }
 
 fn opt(v: &Option<String>) -> String {
-    v.as_ref().map(|s| json_str(s)).unwrap_or_else(|| "null".into())
+    v.as_ref()
+        .map(|s| json_str(s))
+        .unwrap_or_else(|| "null".into())
 }
 
 pub fn analyze(input: &str, output: Option<&str>) -> std::io::Result<()> {

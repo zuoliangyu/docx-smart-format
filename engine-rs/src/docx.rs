@@ -16,7 +16,9 @@ use crate::analyze::SourceBlock;
 use crate::autoformat;
 use crate::plan::{FormatPlan, PlanBlock, PlanDocument, PlanFormat, PlanSection};
 use crate::presets;
-use crate::refs::{self, RefNormalize, BOOKMARK_PREFIX, DEFAULT_HANGING_CHARS, DEFAULT_TAB_POSITION};
+use crate::refs::{
+    self, RefNormalize, BOOKMARK_PREFIX, DEFAULT_HANGING_CHARS, DEFAULT_TAB_POSITION,
+};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Write;
 use zip::write::SimpleFileOptions;
@@ -84,7 +86,11 @@ pub fn build(
 
     let rn_owned: Option<RefNormalize> = if normalize_refs {
         let r = RefNormalize::collect(&plan);
-        if r.is_active() { Some(r) } else { None }
+        if r.is_active() {
+            Some(r)
+        } else {
+            None
+        }
     } else {
         None
     };
@@ -123,8 +129,11 @@ pub fn build(
         let rid = pkg.add_rel(&rel_type, &filename);
         pkg.overrides
             .push((format!("/word/{filename}"), content_type.into()));
-        pkg.parts
-            .push((format!("word/{filename}"), hf.xml.clone().into_bytes(), false));
+        pkg.parts.push((
+            format!("word/{filename}"),
+            hf.xml.clone().into_bytes(),
+            false,
+        ));
         hf_refs.insert(hf.kind, hf.type_, rid);
         if hf.type_ == "even" || hf.type_ == "first" {
             needs_even_odd = true;
@@ -239,8 +248,8 @@ fn document_rels(pkg: &Package) -> String {
 
 /// One header or footer OPC part required by the plan.
 struct HfPart {
-    kind: &'static str,   // "header" | "footer"
-    type_: &'static str,  // "default" | "even" | "first"
+    kind: &'static str,  // "header" | "footer"
+    type_: &'static str, // "default" | "even" | "first"
     xml: String,
 }
 
@@ -255,7 +264,9 @@ impl HfRefs {
         self.inner.insert((kind, type_), rid);
     }
     fn headers(&self) -> Vec<(&'static str, &str)> {
-        let mut v: Vec<_> = self.inner.iter()
+        let mut v: Vec<_> = self
+            .inner
+            .iter()
             .filter(|((k, _), _)| *k == "header")
             .map(|((_, t), r)| (*t, r.as_str()))
             .collect();
@@ -263,7 +274,9 @@ impl HfRefs {
         v
     }
     fn footers(&self) -> Vec<(&'static str, &str)> {
-        let mut v: Vec<_> = self.inner.iter()
+        let mut v: Vec<_> = self
+            .inner
+            .iter()
             .filter(|((k, _), _)| *k == "footer")
             .map(|((_, t), r)| (*t, r.as_str()))
             .collect();
@@ -276,7 +289,12 @@ fn order_for(t: &str) -> u8 {
     // sectPr child-order is fixed; among the headerReference/footerReference
     // siblings the OOXML schema doesn't care about ordering between types,
     // but a stable order is nicer for diffing.
-    match t { "default" => 0, "even" => 1, "first" => 2, _ => 99 }
+    match t {
+        "default" => 0,
+        "even" => 1,
+        "first" => 2,
+        _ => 99,
+    }
 }
 
 fn collect_hf_parts(doc: &PlanDocument) -> Vec<HfPart> {
@@ -285,7 +303,11 @@ fn collect_hf_parts(doc: &PlanDocument) -> Vec<HfPart> {
     }
     // Pre-RS12 behavior: a single default footer when page_number is set.
     if let Some(xml) = footer_part(doc) {
-        return vec![HfPart { kind: "footer", type_: "default", xml }];
+        return vec![HfPart {
+            kind: "footer",
+            type_: "default",
+            xml,
+        }];
     }
     Vec::new()
 }
@@ -376,12 +398,10 @@ fn footer_part(doc: &PlanDocument) -> Option<String> {
         .map(|s| s.trim().to_ascii_lowercase());
     let rpr = run_properties(None, doc, None, false);
     match v.as_deref() {
-        Some("continuous") | Some("center-page-number") => {
-            Some(format!(
-                r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        Some("continuous") | Some("center-page-number") => Some(format!(
+            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:ftr xmlns:w="{W_NS}"><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:fldSimple w:instr=" PAGE "><w:r>{rpr}<w:t>1</w:t></w:r></w:fldSimple></w:p></w:ftr>"#
-            ))
-        }
+        )),
         Some("left-vertical") => {
             // Page-number paragraph carried INSIDE the textbox.
             let inner_p = format!(
@@ -673,19 +693,13 @@ fn render_block(
                     // sibling runs. This way F9-updating a body REF field
                     // pulls back just "n", so the citation stays "[1]"
                     // instead of expanding to "[[1]]".
-                    runs.push_str(&format!(
-                        r#"<w:r>{rpr}<w:t>[</w:t></w:r>"#
-                    ));
+                    runs.push_str(&format!(r#"<w:r>{rpr}<w:t>[</w:t></w:r>"#));
                     runs.push_str(&format!(
                         r#"<w:bookmarkStart w:id="{bid}" w:name="{BOOKMARK_PREFIX}{n}"/>"#
                     ));
-                    runs.push_str(&format!(
-                        r#"<w:r>{rpr}<w:t>{n}</w:t></w:r>"#
-                    ));
+                    runs.push_str(&format!(r#"<w:r>{rpr}<w:t>{n}</w:t></w:r>"#));
                     runs.push_str(&format!(r#"<w:bookmarkEnd w:id="{bid}"/>"#));
-                    runs.push_str(&format!(
-                        r#"<w:r>{rpr}<w:t>]</w:t></w:r>"#
-                    ));
+                    runs.push_str(&format!(r#"<w:r>{rpr}<w:t>]</w:t></w:r>"#));
                     runs.push_str(&format!(r#"<w:r>{rpr}<w:tab/></w:r>"#));
                     if !content.is_empty() {
                         runs.push_str(&format!(
@@ -694,7 +708,8 @@ fn render_block(
                         ));
                     }
                     // Reference paragraph isn't a heading.
-                    let mut ppr_inner = paragraph_properties_inner(block.format.as_ref(), doc, None);
+                    let mut ppr_inner =
+                        paragraph_properties_inner(block.format.as_ref(), doc, None);
                     if !ppr_inner.contains("<w:ind") {
                         ppr_inner.push_str(&format!(
                             r#"<w:ind w:hangingChars="{DEFAULT_HANGING_CHARS}"/>"#
@@ -712,7 +727,10 @@ fn render_block(
                     if !mark_rpr.is_empty() {
                         ppr_inner.push_str(&mark_rpr);
                     }
-                    return vec![BodyElem::Para(Para { ppr_inner, run: runs })];
+                    return vec![BodyElem::Para(Para {
+                        ppr_inner,
+                        run: runs,
+                    })];
                 }
             }
         }
@@ -761,7 +779,14 @@ fn render_block(
     } else if role == "pagenumber" {
         format!(r#"<w:fldSimple w:instr=" PAGE "><w:r>{rpr}<w:t>1</w:t></w:r></w:fldSimple>"#)
     } else {
-        render_text_segments(&text, block.format.as_ref(), doc, heading_level, role == "title", rn)
+        render_text_segments(
+            &text,
+            block.format.as_ref(),
+            doc,
+            heading_level,
+            role == "title",
+            rn,
+        )
     };
 
     vec![BodyElem::Para(Para { ppr_inner, run })]
@@ -782,8 +807,7 @@ fn image_paragraph(block: &PlanBlock, pkg: &mut Package) -> Option<Para> {
 
     pkg.img_seq += 1;
     let media_name = format!("media/image{}.{}", pkg.img_seq, ext);
-    pkg.parts
-        .push((format!("word/{media_name}"), bytes, true));
+    pkg.parts.push((format!("word/{media_name}"), bytes, true));
     let rid = pkg.add_rel(&format!("{R_NS}/image"), &media_name);
 
     let w = img.width_emu.unwrap_or(4_000_000);
@@ -911,8 +935,10 @@ fn equation_para(doc: &PlanDocument, block: &PlanBlock) -> Para {
     let line = if xml.is_some() {
         None
     } else {
-        pf.and_then(|f| f.line_spacing.clone())
-            .or_else(|| doc.line_spacing.map(|ls| ((240.0 * ls).round() as i64).to_string()))
+        pf.and_then(|f| f.line_spacing.clone()).or_else(|| {
+            doc.line_spacing
+                .map(|ls| ((240.0 * ls).round() as i64).to_string())
+        })
     };
     let line_rule = pf
         .and_then(|f| f.line_spacing_rule.as_deref())
@@ -1012,9 +1038,7 @@ fn render_text_segments(
                                 out.push_str(&format!(
                                     r#"<w:r>{rpr}<w:fldChar w:fldCharType="separate"/></w:r>"#
                                 ));
-                                out.push_str(&format!(
-                                    r#"<w:r>{rpr}<w:t>{n}</w:t></w:r>"#
-                                ));
+                                out.push_str(&format!(r#"<w:r>{rpr}<w:t>{n}</w:t></w:r>"#));
                                 out.push_str(&format!(
                                     r#"<w:r>{rpr}<w:fldChar w:fldCharType="end"/></w:r>"#
                                 ));
@@ -1061,9 +1085,10 @@ fn build_table(doc: &PlanDocument, rows: &[Vec<String>]) -> String {
         body.push_str("<w:tr>");
         for cell in row {
             let base_fmt = if is_header {
-                let mut f = PlanFormat::default();
-                f.bold = Some(true);
-                Some(f)
+                Some(PlanFormat {
+                    bold: Some(true),
+                    ..Default::default()
+                })
             } else {
                 None
             };
@@ -1097,7 +1122,10 @@ fn paragraph_properties_inner(
     let mut inner = String::new();
 
     // pStyle must precede all other pPr children per OOXML schema.
-    if let Some(s) = fmt.and_then(|f| f.style_id.as_deref()).filter(|s| !s.is_empty()) {
+    if let Some(s) = fmt
+        .and_then(|f| f.style_id.as_deref())
+        .filter(|s| !s.is_empty())
+    {
         inner.push_str(&format!(r#"<w:pStyle w:val="{}"/>"#, xml_escape(s)));
     }
 
@@ -1134,9 +1162,10 @@ fn paragraph_properties_inner(
         inner.push_str(&ind);
     }
 
-    let line = fmt
-        .and_then(|f| f.line_spacing.clone())
-        .or_else(|| doc.line_spacing.map(|ls| ((240.0 * ls).round() as i64).to_string()));
+    let line = fmt.and_then(|f| f.line_spacing.clone()).or_else(|| {
+        doc.line_spacing
+            .map(|ls| ((240.0 * ls).round() as i64).to_string())
+    });
     let before = fmt.and_then(|f| f.before_spacing.clone());
     let after = fmt.and_then(|f| f.after_spacing.clone());
     let line_rule = fmt
@@ -1194,8 +1223,12 @@ fn run_properties(
         .filter(|s| !s.is_empty())
         .is_some();
 
-    let explicit_ascii = fmt.and_then(|f| f.en_font.clone()).filter(|s| !s.is_empty());
-    let explicit_east = fmt.and_then(|f| f.cn_font.clone()).filter(|s| !s.is_empty());
+    let explicit_ascii = fmt
+        .and_then(|f| f.en_font.clone())
+        .filter(|s| !s.is_empty());
+    let explicit_east = fmt
+        .and_then(|f| f.cn_font.clone())
+        .filter(|s| !s.is_empty());
     let ascii = if has_style {
         explicit_ascii
     } else {
@@ -1243,7 +1276,10 @@ fn run_properties(
     if fmt.and_then(|f| f.italic).unwrap_or(false) {
         inner.push_str("<w:i/>");
     }
-    if let Some(u) = fmt.and_then(|f| f.underline.as_deref()).and_then(map_underline) {
+    if let Some(u) = fmt
+        .and_then(|f| f.underline.as_deref())
+        .and_then(map_underline)
+    {
         inner.push_str(&format!(r#"<w:u w:val="{u}"/>"#));
     }
     if let Some(c) = fmt.and_then(|f| f.font_color.as_deref()) {
@@ -1349,12 +1385,8 @@ fn section_inner(
             .map(|f| format!(r#" w:fmt="{f}""#))
             .unwrap_or_default();
         match s.page_start {
-            Some(start) => {
-                out.push_str(&format!(r#"<w:pgNumType{fmt_attr} w:start="{start}"/>"#))
-            }
-            None if !fmt_attr.is_empty() => {
-                out.push_str(&format!(r#"<w:pgNumType{fmt_attr}/>"#))
-            }
+            Some(start) => out.push_str(&format!(r#"<w:pgNumType{fmt_attr} w:start="{start}"/>"#)),
+            None if !fmt_attr.is_empty() => out.push_str(&format!(r#"<w:pgNumType{fmt_attr}/>"#)),
             None => {}
         }
         if s.title_page {

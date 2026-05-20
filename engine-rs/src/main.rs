@@ -98,7 +98,10 @@ fn run_build(options: &HashMap<String, String>) -> ExitCode {
 
     let normalize_refs = match options.get("normalize-references") {
         None => false,
-        Some(v) => !matches!(v.trim().to_ascii_lowercase().as_str(), "false" | "off" | "0"),
+        Some(v) => !matches!(
+            v.trim().to_ascii_lowercase().as_str(),
+            "false" | "off" | "0"
+        ),
     };
 
     let template_path = options.get("template").map(|s| s.as_str());
@@ -122,7 +125,7 @@ fn run_build(options: &HashMap<String, String>) -> ExitCode {
                  --template <docx>，例如 --template samples\\template.docx。",
                 style_refs.len(),
                 {
-                    let mut uniq: Vec<&str> = style_refs.iter().copied().collect();
+                    let mut uniq: Vec<&str> = style_refs.to_vec();
                     uniq.sort();
                     uniq.dedup();
                     uniq.join(", ")
@@ -131,7 +134,13 @@ fn run_build(options: &HashMap<String, String>) -> ExitCode {
         }
     }
 
-    match docx::build(&plan, output, source_map.as_ref(), normalize_refs, template_path) {
+    match docx::build(
+        &plan,
+        output,
+        source_map.as_ref(),
+        normalize_refs,
+        template_path,
+    ) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("写回失败: {e}");

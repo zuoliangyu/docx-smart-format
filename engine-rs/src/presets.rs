@@ -45,7 +45,9 @@ pub fn apply_undergraduate_thesis(plan: &mut FormatPlan) {
     // header/footer parts get generated in docx.rs; setting these flags
     // makes the section sectPr emit footerReference and the settings.xml
     // emit evenAndOddHeaders.
-    let hf = d.header_footer.get_or_insert_with(PlanHeaderFooter::default);
+    let hf = d
+        .header_footer
+        .get_or_insert_with(PlanHeaderFooter::default);
     hf.odd_even = true;
     hf.page_number
         .get_or_insert_with(|| "center-page-number".into());
@@ -62,44 +64,48 @@ fn apply_block_defaults(block: &mut PlanBlock) {
     // role-specific format profile
     let preset = match role {
         "heading1" => Some(thesis_format(
-            18.0, true, "center", true,  /* pageBreakBefore */
-            /* firstLineChars */ None, /* hangingChars */ None,
-            "240", "120", "400", "exact",
+            18.0, true, "center", true, /* pageBreakBefore */
+            /* firstLineChars */ None, /* hangingChars */ None, "240", "120", "400",
+            "exact",
         )),
         "heading2" => Some(thesis_format(
-            16.0, true, "left", false,
-            None, None,
-            "200", "120", "400", "exact",
+            16.0, true, "left", false, None, None, "200", "120", "400", "exact",
         )),
         "heading3" => Some(thesis_format(
-            14.0, true, "left", false,
-            None, None,
-            "160", "80", "400", "exact",
+            14.0, true, "left", false, None, None, "160", "80", "400", "exact",
         )),
         "title" => Some(thesis_format(
-            22.0, true, "center", false,
-            None, None,
-            "240", "240", "480", "exact",
+            22.0, true, "center", false, None, None, "240", "240", "480", "exact",
         )),
         "body" | "paragraph" | "" => Some(thesis_format(
-            12.0, false, "both", false,
-            Some("200"), None,
-            "0", "0", "400", "exact",
+            12.0,
+            false,
+            "both",
+            false,
+            Some("200"),
+            None,
+            "0",
+            "0",
+            "400",
+            "exact",
         )),
         "reference" => Some(thesis_format(
-            12.0, false, "both", false,
-            None, Some("200"),
-            "0", "0", "400", "exact",
+            12.0,
+            false,
+            "both",
+            false,
+            None,
+            Some("200"),
+            "0",
+            "0",
+            "400",
+            "exact",
         )),
         "caption" => Some(thesis_format(
-            12.0, false, "center", false,
-            None, None,
-            "80", "80", "360", "exact",
+            12.0, false, "center", false, None, None, "80", "80", "360", "exact",
         )),
         "equation" => Some(thesis_format(
-            12.0, false, "center", false,
-            None, None,
-            "160", "160", "0", "auto",
+            12.0, false, "center", false, None, None, "160", "160", "0", "auto",
         )),
         _ => None,
     };

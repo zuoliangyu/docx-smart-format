@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag to publish (e.g. v0.1.0)"
+        description: "Tag to publish (e.g. v0.2.0)"
         required: true
 
 permissions:
@@ -22,18 +22,19 @@ jobs:
         include:
           - os: windows-latest
             rid: win-x64
+            exe_suffix: ".exe"
           - os: ubuntu-latest
             rid: linux-x64
+            exe_suffix: ""
           - os: macos-latest
             rid: osx-arm64
+            exe_suffix: ""
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Resolve tag
         id: tag
@@ -45,33 +46,35 @@ jobs:
             echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Publish self-contained ${{ matrix.rid }}
-        shell: pwsh
-        run: |
-          dotnet publish engine/src/docx-auto-template-engine.csproj `
-            -c Release `
-            -r ${{ matrix.rid }} `
-            --self-contained true `
-            -p:PublishSingleFile=false `
-            -o engine/runtime
+      - name: Build release engine (${{ matrix.rid }})
+        working-directory: engine-rs
+        run: cargo build --release --locked
 
-      - name: Stage skill payload
-        shell: pwsh
+      - name: Stage payload
+        shell: bash
         run: |
-          $staging = "staging/docx-smart-format"
-          New-Item -ItemType Directory -Force -Path $staging | Out-Null
-          Copy-Item -Recurse -Force SKILL.md, README.md, LICENSE, NOTICE, CHANGELOG.md $staging
-          Copy-Item -Recurse -Force agents, references, scripts $staging
-          New-Item -ItemType Directory -Force -Path "$staging/engine" | Out-Null
-          Copy-Item -Recurse -Force engine/runtime "$staging/engine/runtime"
+          set -euo pipefail
+          STAGING="staging/docx-smart-engine"
+          mkdir -p "$STAGING"
+          cp engine-rs/target/release/docx-auto-template-engine${{ matrix.exe_suffix }} "$STAGING/"
+          cp -r dist/samples "$STAGING/"
+          cp dist/README.txt "$STAGING/"
+          cp LICENSE NOTICE CHANGELOG.md "$STAGING/" || true
+          ls -la "$STAGING/"
 
       - name: Zip payload
-        shell: pwsh
+        shell: bash
         run: |
-          $tag = "${{ steps.tag.outputs.tag }}"
-          $name = "docx-smart-format-$tag-${{ matrix.rid }}.zip"
-          Compress-Archive -Path staging/docx-smart-format/* -DestinationPath $name
-          "ASSET_NAME=$name" | Out-File -FilePath $env:GITHUB_ENV -Append
+          set -euo pipefail
+          TAG="${{ steps.tag.outputs.tag }}"
+          NAME="docx-smart-engine-${TAG}-${{ matrix.rid }}.zip"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            powershell -Command "Compress-Archive -Path staging/docx-smart-engine/* -DestinationPath '$NAME'"
+          else
+            (cd staging/docx-smart-engine && zip -r "../../$NAME" .)
+          fi
+          ls -la "$NAME"
+          echo "ASSET_NAME=$NAME" >> "$GITHUB_ENV"
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
