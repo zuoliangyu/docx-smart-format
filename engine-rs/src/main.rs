@@ -103,6 +103,34 @@ fn run_build(options: &HashMap<String, String>) -> ExitCode {
 
     let template_path = options.get("template").map(|s| s.as_str());
 
+    // If the plan references paragraph styles via format.styleId but no
+    // --template is supplied, those references are dangling and Word will
+    // fall back to default Normal rendering. Warn loudly -- this is the
+    // single most common user trip-wire.
+    if template_path.is_none() {
+        let style_refs: Vec<&str> = plan
+            .blocks
+            .iter()
+            .filter_map(|b| b.format.as_ref()?.style_id.as_deref())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if !style_refs.is_empty() {
+            eprintln!(
+                "警告: plan 里有 {} 处 format.styleId 引用 ({})，但未提供 --template <docx>。\n\
+                 引擎不会复制任何 word/styles.xml 进输出，<w:pStyle> 将是 dangling 引用，\n\
+                 Word 渲染时会回退到默认 Normal 样式。如需让样式生效，请补上 \n\
+                 --template <docx>，例如 --template samples\\template.docx。",
+                style_refs.len(),
+                {
+                    let mut uniq: Vec<&str> = style_refs.iter().copied().collect();
+                    uniq.sort();
+                    uniq.dedup();
+                    uniq.join(", ")
+                }
+            );
+        }
+    }
+
     match docx::build(&plan, output, source_map.as_ref(), normalize_refs, template_path) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
