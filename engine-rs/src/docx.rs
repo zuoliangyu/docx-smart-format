@@ -337,7 +337,36 @@ fn render_block(
     let ppr_inner = paragraph_properties_inner(block.format.as_ref(), doc);
     let rpr = run_properties(block.format.as_ref(), doc, heading_level, role == "title");
 
-    let run = if role == "pagenumber" {
+    // Overlay with per-run fidelity: emit one <w:r> per source run so the
+    // source's inline bold/italic/sub-superscript/tab survive reformat.
+    // plan.format is intentionally NOT applied at run level on overlay
+    // (matches .NET, which lets source.Runs pass through unmodified).
+    let run = if let Some(sb) = overlay.filter(|s| !s.runs.is_empty()) {
+        let mut s = String::new();
+        for sr in &sb.runs {
+            if sr.kind.as_deref() == Some("tab") {
+                s.push_str(&format!("<w:r>{rpr}<w:tab/></w:r>"));
+                continue;
+            }
+            if sr.text.is_empty() {
+                continue;
+            }
+            let mut f = PlanFormat::default();
+            if sr.bold {
+                f.bold = Some(true);
+            }
+            if sr.italic {
+                f.italic = Some(true);
+            }
+            f.vertical_align = sr.vertical_align.clone();
+            let rp = run_properties(Some(&f), doc, heading_level, role == "title");
+            s.push_str(&format!(
+                r#"<w:r>{rp}<w:t xml:space="preserve">{}</w:t></w:r>"#,
+                xml_escape(&sr.text)
+            ));
+        }
+        s
+    } else if role == "pagenumber" {
         format!(r#"<w:fldSimple w:instr=" PAGE "><w:r>{rpr}<w:t>1</w:t></w:r></w:fldSimple>"#)
     } else {
         format!(

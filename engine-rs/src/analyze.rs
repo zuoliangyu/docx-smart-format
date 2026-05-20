@@ -15,6 +15,8 @@ struct Props {
     east: Option<String>,
     sz: Option<String>,
     bold: Option<bool>,
+    italic: Option<bool>,
+    vertical_align: Option<String>,
     jc: Option<String>,
     outline: Option<i32>,
 }
@@ -32,6 +34,12 @@ impl Props {
         }
         if o.bold.is_some() {
             self.bold = o.bold;
+        }
+        if o.italic.is_some() {
+            self.italic = o.italic;
+        }
+        if o.vertical_align.is_some() {
+            self.vertical_align = o.vertical_align.clone();
         }
         if o.jc.is_some() {
             self.jc = o.jc.clone();
@@ -98,6 +106,15 @@ fn parse_props(reader: &mut Reader<&[u8]>, end_local: &[u8], p: &mut Props) {
                 b"b" => {
                     let v = attr(&e, "val");
                     p.bold = Some(!matches!(v.as_deref(), Some("0") | Some("false")));
+                }
+                b"i" => {
+                    let v = attr(&e, "val");
+                    p.italic = Some(!matches!(v.as_deref(), Some("0") | Some("false")));
+                }
+                b"vertAlign" => {
+                    if let Some(v) = attr(&e, "val") {
+                        p.vertical_align = Some(v);
+                    }
                 }
                 b"jc" => {
                     if let Some(v) = attr(&e, "val") {
@@ -207,15 +224,28 @@ struct Block {
     style: Option<String>,
     heading_level: Option<i32>,
     eff: Props,
+    runs: Vec<SourceRun>,
 }
 
-/// Public projection of a source-document block, for build --source overlay.
-/// RS6 scope: paragraph-level reuse (text + heading); per-run reuse later.
+/// Public projection of a source-document block for build --source overlay.
+/// RS7 adds per-run fidelity (`runs`) so reformat preserves source inline
+/// formatting (bold/italic/sub-superscript/tab) — mirrors .NET source.Runs.
 #[derive(Debug, Clone)]
 pub struct SourceBlock {
     pub path: String,
     pub text: String,
     pub heading_level: Option<i32>,
+    pub runs: Vec<SourceRun>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SourceRun {
+    pub text: String,
+    pub bold: bool,
+    pub italic: bool,
+    pub vertical_align: Option<String>,
+    /// Some("tab") for a <w:tab/> marker; None for a regular text run.
+    pub kind: Option<String>,
 }
 
 pub fn source_blocks(input: &str) -> std::io::Result<Vec<SourceBlock>> {
@@ -229,6 +259,7 @@ pub fn source_blocks(input: &str) -> std::io::Result<Vec<SourceBlock>> {
             path: b.path,
             text: b.text,
             heading_level: b.heading_level,
+            runs: b.runs,
         })
         .collect())
 }
@@ -262,12 +293,13 @@ fn parse_document(
                             style: None,
                             heading_level: None,
                             eff: defaults.clone(),
+                            runs: Vec::new(),
                         });
                     }
                 }
                 b"p" if in_body && in_table == 0 => {
                     para_idx += 1;
-                    let (text, style, direct) = parse_paragraph(&mut reader);
+                    let (text, style, direct, runs) = parse_paragraph(&mut reader);
                     let mut eff = match &style {
                         Some(s) => resolve_style(s, styles, defaults, 0),
                         None => defaults.clone(),
@@ -283,6 +315,7 @@ fn parse_document(
                         style,
                         heading_level,
                         eff,
+                        runs,
                     });
                 }
                 _ => {}
@@ -350,18 +383,69 @@ fn heading_from_style(s: &str) -> Option<i32> {
     }
 }
 
-/// Returns (text, pStyle, direct first-run+pPr props).
-fn parse_paragraph(reader: &mut Reader<&[u8]>) -> (String, Option<String>, Props) {
+/// Returns (text, pStyle, direct(paragraph-level seed), runs(per-run)).
+/// Walks the <w:p> event stream tracking <w:r> depth so:
+///   - paragraph-level pStyle / jc / outlineLvl go into `direct`,
+///   - the first encountered rPr (mark or first-run) seeds `direct` (kept
+///     for the analyze JSON's effective view, RS5-compatible),
+///   - every <w:r>'s rPr toggles flow into one `SourceRun` per run,
+///   - <w:tab/> is emitted as a separate run with kind="tab".
+fn parse_paragraph(
+    reader: &mut Reader<&[u8]>,
+) -> (String, Option<String>, Props, Vec<SourceRun>) {
     let mut text = String::new();
     let mut style = None;
     let mut direct = Props::default();
-    let mut rpr_seen = false;
+    let mut runs: Vec<SourceRun> = Vec::new();
+    let mut cur = SourceRun::default();
+    let mut in_r: u32 = 0;
+    let mut in_t = false;
+    let mut first_rpr_used = false;
     let mut buf = Vec::new();
-    let mut in_text = false;
+
+    let flush = |runs: &mut Vec<SourceRun>, cur: &mut SourceRun| {
+        if !cur.text.is_empty()
+            || cur.bold
+            || cur.italic
+            || cur.vertical_align.is_some()
+            || cur.kind.is_some()
+        {
+            runs.push(std::mem::take(cur));
+        } else {
+            *cur = SourceRun::default();
+        }
+    };
 
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(Event::Start(e)) | Ok(Event::Empty(e)) => match local(e.name().as_ref()) {
+            Ok(Event::Start(e)) => match local(e.name().as_ref()) {
+                b"r" => {
+                    in_r += 1;
+                    cur = SourceRun::default();
+                }
+                b"rPr" => {
+                    let mut tmp = Props::default();
+                    parse_props(reader, b"rPr", &mut tmp);
+                    if in_r > 0 {
+                        if matches!(tmp.bold, Some(true)) {
+                            cur.bold = true;
+                        }
+                        if matches!(tmp.italic, Some(true)) {
+                            cur.italic = true;
+                        }
+                        if tmp.vertical_align.is_some() {
+                            cur.vertical_align = tmp.vertical_align.clone();
+                        }
+                    }
+                    if !first_rpr_used {
+                        direct.overlay(&tmp);
+                        first_rpr_used = true;
+                    }
+                }
+                b"t" => in_t = true,
+                _ => {}
+            },
+            Ok(Event::Empty(e)) => match local(e.name().as_ref()) {
                 b"pStyle" => style = attr(&e, "val"),
                 b"jc" => {
                     if let Some(v) = attr(&e, "val") {
@@ -373,18 +457,26 @@ fn parse_paragraph(reader: &mut Reader<&[u8]>) -> (String, Option<String>, Props
                         direct.outline = v.parse::<i32>().ok().map(|x| x + 1);
                     }
                 }
-                b"rPr" if !rpr_seen => {
-                    rpr_seen = true;
-                    parse_props(reader, b"rPr", &mut direct);
+                b"tab" if in_r > 0 => {
+                    let mut tab_cur = SourceRun::default();
+                    tab_cur.kind = Some("tab".to_string());
+                    // Close out current text run first (if any), then push the tab marker.
+                    flush(&mut runs, &mut cur);
+                    runs.push(tab_cur);
                 }
-                b"t" => in_text = true,
                 _ => {}
             },
-            Ok(Event::Text(t)) if in_text => {
-                text.push_str(&String::from_utf8_lossy(t.as_ref()));
+            Ok(Event::Text(t)) if in_t && in_r > 0 => {
+                let s = String::from_utf8_lossy(t.as_ref());
+                cur.text.push_str(&s);
+                text.push_str(&s);
             }
             Ok(Event::End(e)) => match local(e.name().as_ref()) {
-                b"t" => in_text = false,
+                b"t" => in_t = false,
+                b"r" => {
+                    in_r -= 1;
+                    flush(&mut runs, &mut cur);
+                }
                 b"p" => break,
                 _ => {}
             },
@@ -393,7 +485,7 @@ fn parse_paragraph(reader: &mut Reader<&[u8]>) -> (String, Option<String>, Props
         }
         buf.clear();
     }
-    (text, style, direct)
+    (text, style, direct, runs)
 }
 
 fn json_str(s: &str) -> String {
