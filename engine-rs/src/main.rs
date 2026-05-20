@@ -3,6 +3,7 @@
 //! Targets the converged surface only: `analyze` + `build` (FormatPlan).
 //! Legacy `apply`/`render` stay on the .NET engine (zero capability loss).
 
+mod analyze;
 mod docx;
 mod plan;
 
@@ -22,8 +23,20 @@ fn main() -> ExitCode {
     match command.as_str() {
         "build" => run_build(&options),
         "analyze" => {
-            eprintln!("analyze 尚未在 Rust 引擎实现（RS0 纵切仅覆盖 build/generate）。");
-            ExitCode::from(2)
+            let input = match options.get("input") {
+                Some(i) => i,
+                None => {
+                    eprintln!("缺少参数 --input");
+                    return ExitCode::from(1);
+                }
+            };
+            match analyze::analyze(input, options.get("output").map(|s| s.as_str())) {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(e) => {
+                    eprintln!("analyze 失败: {e}");
+                    ExitCode::from(1)
+                }
+            }
         }
         other => {
             eprintln!("不支持的命令: {other}");
