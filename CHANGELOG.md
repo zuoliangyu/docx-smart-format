@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+(no changes yet)
+
+## [0.2.0] - 2026-05-20
+
 ### Added
 - 统一 LLM 契约 `FormatPlan`（覆盖/生成同形，靠块 `ref` 区分）与 `FormatPlanCompiler`。
 - `build` 命令：有 `--source` 即重排、无即从零生成。
