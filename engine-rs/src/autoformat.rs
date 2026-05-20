@@ -134,6 +134,22 @@ fn try_split_chemistry(token: &str) -> Option<Vec<Segment>> {
     if !has_upper || (!has_digit && !has_pm) {
         return None;
     }
+    // English-word guard: real chemical element symbols are at most two
+    // characters (H, He, Na, Mg, ...). A token with 3+ consecutive
+    // lowercase letters cannot be chemistry -- it's a word like
+    // "Heading1" / "Section2" / "Chapter3" / "World123". Reject so that
+    // the digit doesn't get auto-subscripted inside an English word.
+    let mut lower_run = 0u32;
+    for c in token.chars() {
+        if c.is_lowercase() {
+            lower_run += 1;
+            if lower_run >= 3 {
+                return None;
+            }
+        } else {
+            lower_run = 0;
+        }
+    }
 
     // Split off trailing charge (\d*[+-]+).
     let bytes: Vec<char> = token.chars().collect();
