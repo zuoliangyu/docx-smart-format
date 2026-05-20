@@ -1140,22 +1140,59 @@ fn run_properties(
     heading_level: Option<u8>,
     is_title: bool,
 ) -> String {
-    let ascii = fmt
-        .and_then(|f| f.en_font.clone())
-        .or_else(|| doc.en_font.clone())
-        .unwrap_or_else(|| "Times New Roman".to_string());
-    let east = fmt
-        .and_then(|f| f.cn_font.clone())
-        .or_else(|| doc.cn_font.clone())
-        .unwrap_or_else(|| "宋体".to_string());
+    // When the block references a paragraph style (pStyle), inline run-level
+    // rPr from doc defaults would *override* the style's run properties --
+    // OOXML's precedence is: direct > paragraph style > docDefaults. We want
+    // the template style to win, so when style_id is set we emit only what
+    // the caller explicitly put on this block's format and skip auto-fill.
+    let has_style = fmt
+        .and_then(|f| f.style_id.as_deref())
+        .filter(|s| !s.is_empty())
+        .is_some();
 
-    let mut inner = format!(
-        r#"<w:rFonts w:ascii="{a}" w:hAnsi="{a}" w:eastAsia="{e}" w:cs="{e}"/>"#,
-        a = xml_escape(&ascii),
-        e = xml_escape(&east)
-    );
+    let explicit_ascii = fmt.and_then(|f| f.en_font.clone()).filter(|s| !s.is_empty());
+    let explicit_east = fmt.and_then(|f| f.cn_font.clone()).filter(|s| !s.is_empty());
+    let ascii = if has_style {
+        explicit_ascii
+    } else {
+        explicit_ascii
+            .or_else(|| doc.en_font.clone())
+            .or_else(|| Some("Times New Roman".to_string()))
+    };
+    let east = if has_style {
+        explicit_east
+    } else {
+        explicit_east
+            .or_else(|| doc.cn_font.clone())
+            .or_else(|| Some("宋体".to_string()))
+    };
 
-    let bold = fmt.and_then(|f| f.bold).unwrap_or(false) || heading_level.is_some() || is_title;
+    let mut inner = String::new();
+    if ascii.is_some() || east.is_some() {
+        let a = ascii.unwrap_or_default();
+        let e = east.unwrap_or_default();
+        // Build rFonts with whichever sides are populated.
+        let mut tag = String::from("<w:rFonts");
+        if !a.is_empty() {
+            tag.push_str(&format!(
+                r#" w:ascii="{a}" w:hAnsi="{a}""#,
+                a = xml_escape(&a)
+            ));
+        }
+        if !e.is_empty() {
+            tag.push_str(&format!(
+                r#" w:eastAsia="{e}" w:cs="{e}""#,
+                e = xml_escape(&e)
+            ));
+        }
+        tag.push_str("/>");
+        inner.push_str(&tag);
+    }
+
+    // Auto-bold for headings/titles ONLY when no template style is in play.
+    // If a style is set, the style supplies its own bold (or absence thereof).
+    let auto_bold = !has_style && (heading_level.is_some() || is_title);
+    let bold = fmt.and_then(|f| f.bold).unwrap_or(false) || auto_bold;
     if bold {
         inner.push_str("<w:b/>");
     }
@@ -1175,12 +1212,18 @@ fn run_properties(
         inner.push_str(&format!(r#"<w:vertAlign w:val="{va}"/>"#));
     }
 
-    let sz = fmt
-        .and_then(|f| f.font_pt)
-        .map(half_point)
-        .or_else(|| doc.base_font_pt.map(half_point))
-        .unwrap_or_else(|| fallback_heading_size(heading_level));
-    inner.push_str(&format!(r#"<w:sz w:val="{sz}"/><w:szCs w:val="{sz}"/>"#));
+    let sz = fmt.and_then(|f| f.font_pt).map(half_point).or_else(|| {
+        if has_style {
+            None
+        } else {
+            doc.base_font_pt
+                .map(half_point)
+                .or_else(|| Some(fallback_heading_size(heading_level)))
+        }
+    });
+    if let Some(s) = sz {
+        inner.push_str(&format!(r#"<w:sz w:val="{s}"/><w:szCs w:val="{s}"/>"#));
+    }
 
     format!("<w:rPr>{inner}</w:rPr>")
 }
