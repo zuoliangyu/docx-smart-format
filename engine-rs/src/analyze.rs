@@ -209,6 +209,30 @@ struct Block {
     eff: Props,
 }
 
+/// Public projection of a source-document block, for build --source overlay.
+/// RS6 scope: paragraph-level reuse (text + heading); per-run reuse later.
+#[derive(Debug, Clone)]
+pub struct SourceBlock {
+    pub path: String,
+    pub text: String,
+    pub heading_level: Option<i32>,
+}
+
+pub fn source_blocks(input: &str) -> std::io::Result<Vec<SourceBlock>> {
+    let doc = read_zip_part(input, "word/document.xml")
+        .ok_or_else(|| std::io::Error::other("word/document.xml missing"))?;
+    let styles_xml = read_zip_part(input, "word/styles.xml").unwrap_or_default();
+    let (defaults, styles) = parse_styles(&styles_xml);
+    Ok(parse_document(&doc, &defaults, &styles)
+        .into_iter()
+        .map(|b| SourceBlock {
+            path: b.path,
+            text: b.text,
+            heading_level: b.heading_level,
+        })
+        .collect())
+}
+
 fn parse_document(
     xml: &str,
     defaults: &Props,

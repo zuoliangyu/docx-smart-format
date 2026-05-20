@@ -12,8 +12,9 @@
 //!   RS4  images: a real OPC relationship/parts accumulator (Package)
 //!        that footer + media share; inline DrawingML picture.
 
+use crate::analyze::SourceBlock;
 use crate::plan::{FormatPlan, PlanBlock, PlanDocument, PlanFormat, PlanSection};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::io::Write;
 use zip::write::SimpleFileOptions;
 
@@ -55,7 +56,11 @@ impl Package {
     }
 }
 
-pub fn build(plan: &FormatPlan, output: &str) -> std::io::Result<()> {
+pub fn build(
+    plan: &FormatPlan,
+    output: &str,
+    source: Option<&HashMap<String, SourceBlock>>,
+) -> std::io::Result<()> {
     let mut pkg = Package::new();
 
     // Footer first so it keeps rId1 (parity with the RS2 layout).
@@ -72,7 +77,7 @@ pub fn build(plan: &FormatPlan, output: &str) -> std::io::Result<()> {
         None
     };
 
-    let document_xml = render_document(plan, &mut pkg, footer_rid.as_deref());
+    let document_xml = render_document(plan, &mut pkg, footer_rid.as_deref(), source);
 
     let file = std::fs::File::create(output)?;
     let mut zip = zip::ZipWriter::new(file);
@@ -188,7 +193,12 @@ enum BodyElem {
     Raw(String),
 }
 
-fn render_document(plan: &FormatPlan, pkg: &mut Package, footer_rid: Option<&str>) -> String {
+fn render_document(
+    plan: &FormatPlan,
+    pkg: &mut Package,
+    footer_rid: Option<&str>,
+    source: Option<&HashMap<String, SourceBlock>>,
+) -> String {
     let mut groups: Vec<(Option<String>, Vec<&PlanBlock>)> = Vec::new();
     for block in &plan.blocks {
         let key = block.section_key.clone();
@@ -212,7 +222,7 @@ fn render_document(plan: &FormatPlan, pkg: &mut Package, footer_rid: Option<&str
         let section: Option<&PlanSection> = find_section(key);
         let mut elems: Vec<BodyElem> = Vec::new();
         for b in blocks {
-            elems.extend(render_block(&plan.document, b, pkg));
+            elems.extend(render_block(&plan.document, b, pkg, source));
         }
 
         if gi == last_idx {
@@ -255,8 +265,32 @@ fn render_document(plan: &FormatPlan, pkg: &mut Package, footer_rid: Option<&str
     )
 }
 
-fn render_block(doc: &PlanDocument, block: &PlanBlock, pkg: &mut Package) -> Vec<BodyElem> {
-    let role = block.role.trim().to_ascii_lowercase();
+fn render_block(
+    doc: &PlanDocument,
+    block: &PlanBlock,
+    pkg: &mut Package,
+    source: Option<&HashMap<String, SourceBlock>>,
+) -> Vec<BodyElem> {
+    // Overlay: if ref + source available, reuse source paragraph (text +
+    // heading level); plan.format is applied on top. Mirrors .NET
+    // FormatPlanCompiler overlay at paragraph fidelity (per-run reuse TBD).
+    let overlay = block
+        .r#ref
+        .as_deref()
+        .zip(source)
+        .and_then(|(r, m)| m.get(r));
+
+    let mut role = block.role.trim().to_ascii_lowercase();
+    if let Some(sb) = overlay {
+        if let Some(lvl) = sb.heading_level {
+            role = match lvl {
+                1 => "heading1".into(),
+                2 => "heading2".into(),
+                3 => "heading3".into(),
+                _ => role,
+            };
+        }
+    }
 
     if role == "figure" || block.image.is_some() {
         let mut out = Vec::new();
@@ -288,13 +322,17 @@ fn render_block(doc: &PlanDocument, block: &PlanBlock, pkg: &mut Package) -> Vec
         "heading3" => Some(3),
         _ => None,
     };
-    let text = block.text.clone().unwrap_or_else(|| {
-        if role == "caption" {
-            block.caption.clone().unwrap_or_default()
-        } else {
-            String::new()
-        }
-    });
+    let text = if let Some(sb) = overlay {
+        sb.text.clone()
+    } else {
+        block.text.clone().unwrap_or_else(|| {
+            if role == "caption" {
+                block.caption.clone().unwrap_or_default()
+            } else {
+                String::new()
+            }
+        })
+    };
 
     let ppr_inner = paragraph_properties_inner(block.format.as_ref(), doc);
     let rpr = run_properties(block.format.as_ref(), doc, heading_level, role == "title");

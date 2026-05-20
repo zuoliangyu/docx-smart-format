@@ -62,9 +62,21 @@ fn run_build(options: &HashMap<String, String>) -> ExitCode {
         }
     };
 
-    if options.contains_key("source") {
-        eprintln!("注意: --source 覆盖模式 (overlay) 尚未在 RS0 实现，本切片仅 generate。");
-    }
+    let source_map = match options.get("source") {
+        Some(src) => match analyze::source_blocks(src) {
+            Ok(blocks) => Some(
+                blocks
+                    .into_iter()
+                    .map(|b| (b.path.clone(), b))
+                    .collect::<std::collections::HashMap<_, _>>(),
+            ),
+            Err(e) => {
+                eprintln!("--source 分析失败: {e}");
+                return ExitCode::from(1);
+            }
+        },
+        None => None,
+    };
 
     let json = match std::fs::read_to_string(plan_path) {
         Ok(s) => s,
@@ -81,7 +93,7 @@ fn run_build(options: &HashMap<String, String>) -> ExitCode {
         }
     };
 
-    match docx::build(&plan, output) {
+    match docx::build(&plan, output, source_map.as_ref()) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("写回失败: {e}");

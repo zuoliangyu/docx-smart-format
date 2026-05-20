@@ -1,0 +1,28 @@
+{
+  "document": {
+    "cnFont": "宋体",
+    "enFont": "Times New Roman",
+    "baseFontPt": 12
+  },
+  "blocks": [
+    {
+      "ref": "/body/paragraph[1]",
+      "role": "body",
+      "format": {
+        "align": "right",
+        "bold": true
+      }
+    },
+    {
+      "ref": "/body/paragraph[3]",
+      "role": "body",
+      "format": {
+        "align": "center"
+      }
+    },
+    {
+      "role": "body",
+      "text": "这一段从零生成、追加在覆盖块之后。"
+    }
+  ]
+}
