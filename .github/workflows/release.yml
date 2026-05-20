@@ -46,6 +46,29 @@ jobs:
             echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Extract release notes from CHANGELOG.md
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.tag.outputs.tag }}"
+          VER="${TAG#v}"
+          NOTES_FILE="release-notes.md"
+          # Capture the section from "## [<version>]" to the next "## [...".
+          # Use index() to dodge cross-awk regex escape behavior on '\['.
+          awk -v vtag="## [$VER]" '
+            index($0, vtag) == 1 { flag=1; print; next }
+            flag && index($0, "## [") == 1 { exit }
+            flag { print }
+          ' CHANGELOG.md > "$NOTES_FILE"
+          if [ ! -s "$NOTES_FILE" ]; then
+            echo "WARNING: no CHANGELOG section found for $VER -- falling back to placeholder"
+            echo "Release $TAG" > "$NOTES_FILE"
+          fi
+          echo "notes_file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
+          echo "--- extracted release notes (first 20 lines) ---"
+          head -20 "$NOTES_FILE"
+
       - name: Build release engine (${{ matrix.rid }})
         working-directory: engine-rs
         run: cargo build --release --locked
@@ -105,7 +128,12 @@ jobs:
           name: ${{ steps.tag.outputs.tag }}
           draft: false
           prerelease: false
-          generate_release_notes: true
+          # Use CHANGELOG.md section instead of auto-generated commit log.
+          # All three matrix jobs supply the same body_path; softprops is
+          # idempotent so the first one wins on the body and the rest just
+          # add their asset.
+          body_path: ${{ steps.notes.outputs.notes_file }}
+          generate_release_notes: false
           files: ${{ env.ASSET_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

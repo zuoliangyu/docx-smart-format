@@ -98,5 +98,6 @@
 ### Notes
 - 当前仅 Windows x64 提供官方预编译产物；其他平台请自行构建（`build.ps1` / `build.sh`）。
 
-[Unreleased]: https://github.com/yaya200325/docx-smart-format/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/zuoliangyu/docx-smart-format/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/zuoliangyu/docx-smart-format/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/yaya200325/docx-smart-format/releases/tag/v0.1.0
