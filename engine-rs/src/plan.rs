@@ -127,4 +127,9 @@ pub struct PlanFormat {
     pub before_spacing: Option<String>,
     pub after_spacing: Option<String>,
     pub page_break_before: Option<bool>,
+
+    /// Paragraph style id (e.g. "Heading1", "Reference"). Resolved against
+    /// the styles.xml copied from `build --template`. Emitted as
+    /// `<w:pStyle w:val="..."/>`.
+    pub style_id: Option<String>,
 }

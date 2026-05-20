@@ -1,0 +1,30 @@
+{
+  "document": {
+    "cnFont": "宋体",
+    "enFont": "Times New Roman",
+    "baseFontPt": 12
+  },
+  "blocks": [
+    {
+      "role": "body",
+      "text": "一段引用 Heading1 样式的段落:",
+      "format": {
+        "styleId": "Heading1"
+      }
+    },
+    {
+      "role": "body",
+      "text": "普通正文段。",
+      "format": {
+        "styleId": "Normal"
+      }
+    },
+    {
+      "role": "body",
+      "text": "引用 Reference 样式:",
+      "format": {
+        "styleId": "Reference"
+      }
+    }
+  ]
+}

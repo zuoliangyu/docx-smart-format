@@ -178,6 +178,7 @@ fn merge_into(dst: &mut PlanFormat, src: &PlanFormat) {
     fill!(hanging_indent);
     fill!(line_spacing);
     fill!(line_spacing_rule);
+    fill!(style_id);
     fill!(before_spacing);
     fill!(after_spacing);
     fill!(page_break_before);

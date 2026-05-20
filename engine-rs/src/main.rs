@@ -101,7 +101,9 @@ fn run_build(options: &HashMap<String, String>) -> ExitCode {
         Some(v) => !matches!(v.trim().to_ascii_lowercase().as_str(), "false" | "off" | "0"),
     };
 
-    match docx::build(&plan, output, source_map.as_ref(), normalize_refs) {
+    let template_path = options.get("template").map(|s| s.as_str());
+
+    match docx::build(&plan, output, source_map.as_ref(), normalize_refs, template_path) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("写回失败: {e}");
@@ -127,6 +129,6 @@ fn parse_options(args: &[String]) -> HashMap<String, String> {
 
 fn print_usage() {
     eprintln!("用法:");
-    eprintln!("  build --plan <format-plan.json> --output <result.docx> [--source <docx>] [--normalize-references]");
+    eprintln!("  build --plan <format-plan.json> --output <result.docx> [--source <docx>] [--template <docx>] [--normalize-references]");
     eprintln!("  analyze --input <docx> --output <analysis.json>");
 }

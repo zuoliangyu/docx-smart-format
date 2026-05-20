@@ -65,6 +65,7 @@ pub fn build(
     output: &str,
     source: Option<&HashMap<String, SourceBlock>>,
     normalize_refs: bool,
+    template_path: Option<&str>,
 ) -> std::io::Result<()> {
     // Clone so a preset can fill in defaults without mutating the caller's plan.
     let mut plan = plan.clone();
@@ -144,6 +145,22 @@ pub fn build(
             build_settings_xml(needs_even_odd).into_bytes(),
             false,
         ));
+    }
+
+    // Copy styles.xml from the template docx if provided. The template's
+    // <w:style w:styleId="..."/> definitions become resolvable by every
+    // paragraph that sets format.style_id, giving 'apply --template' parity
+    // with the .NET TemplateApplyEngine for the structural-reformat use case.
+    if let Some(tpl) = template_path {
+        if let Some(styles_xml) = read_template_styles(tpl) {
+            let _ = pkg.add_rel(&format!("{R_NS}/styles"), "styles.xml");
+            pkg.overrides.push((
+                "/word/styles.xml".into(),
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml".into(),
+            ));
+            pkg.parts
+                .push(("word/styles.xml".into(), styles_xml.into_bytes(), false));
+        }
     }
 
     let document_xml = render_document(&plan, &mut pkg, &hf_refs, source, rn);
@@ -323,6 +340,18 @@ fn build_page_number_footer_xml(doc: &PlanDocument) -> String {
         r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:ftr xmlns:w="{W_NS}"><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r>{rpr}<w:t xml:space="preserve">第 </w:t></w:r><w:fldSimple w:instr=" PAGE "><w:r>{rpr}<w:t>1</w:t></w:r></w:fldSimple><w:r>{rpr}<w:t xml:space="preserve"> 页</w:t></w:r></w:p></w:ftr>"#
     )
+}
+
+/// Read `word/styles.xml` out of a template docx (zip). Returns None on
+/// any failure -- the engine then renders without external styles.
+fn read_template_styles(path: &str) -> Option<String> {
+    use std::io::Read;
+    let file = std::fs::File::open(path).ok()?;
+    let mut zip = zip::ZipArchive::new(file).ok()?;
+    let mut entry = zip.by_name("word/styles.xml").ok()?;
+    let mut s = String::new();
+    entry.read_to_string(&mut s).ok()?;
+    Some(s)
 }
 
 fn build_settings_xml(even_odd: bool) -> String {
@@ -1046,6 +1075,11 @@ fn build_table(doc: &PlanDocument, rows: &[Vec<String>]) -> String {
 
 fn paragraph_properties_inner(fmt: Option<&PlanFormat>, doc: &PlanDocument) -> String {
     let mut inner = String::new();
+
+    // pStyle must precede all other pPr children per OOXML schema.
+    if let Some(s) = fmt.and_then(|f| f.style_id.as_deref()).filter(|s| !s.is_empty()) {
+        inner.push_str(&format!(r#"<w:pStyle w:val="{}"/>"#, xml_escape(s)));
+    }
 
     if let Some(a) = fmt.and_then(|f| f.align.as_deref()).and_then(map_align) {
         inner.push_str(&format!(r#"<w:jc w:val="{a}"/>"#));
