@@ -11,6 +11,22 @@
 - `build` 命令：有 `--source` 即重排、无即从零生成。
 - `references/format-plan-schema.md`；`scripts/sample-format-plan.json`。
 - `tests/golden/` 行为回归网（record/verify，规范化 + 易变量清洗）。
+- **Rust 引擎（alpha）`engine-rs/`**：单文件 ~0.4MB 二进制，零运行时依赖，跨平台。
+  - RS0 段落（FormatPlan generate 全部段级保真：标题级、对齐、缩进、间距、字体、上下标、粗斜下划线、颜色等）
+  - RS1 多分节 + sectPr（页面大小/方向/边距/pgNumType/titlePg/section type）
+  - RS2 OPC 部件 + 关系机制 + 居中 PAGE 字段页脚
+  - RS3 表格（三线表 + 表头加粗下框线 + caption 在表上方）
+  - RS4 图片（DrawingML inline + 媒体部件 + rels + content-types Default 扩展）
+  - RS5 `analyze`：有效样式继承解析（docDefaults → pStyle basedOn 链 → 直接 rPr）+ 块结构
+  - RS6 `build --source` overlay：源块文本 + 标题级继承 + 段级 format 覆盖
+  - RS7 overlay 内联保真：per-run 提取 + 重排时还原源文档每个 run 的粗斜/上下标/Tab
+  - RS8 AutoFormat 分词器：化学式 H2O、单位指数 m²/cm³、`^X`/`_X`/`^{XX}`/`_{XX}` 标记自动拆 run
+  - RS9 参考文献规范化（`--normalize-references`）：reference 块 `[n]<Tab>` + 书签；正文上标 `[n]` / `[n,m]` / `[n-m]` 转 REF 复杂字段交叉引用
+  - RS10 OMML 公式：原样嵌入调用方的 `<m:oMath>`/`<m:oMathPara>`；display 模式自动外裹 `<m:oMathPara>` + `centerGroup`
+  - RS11 VML 双轨竖排页码：`mc:AlternateContent` + `wps:wsp` + VML `v:rect` 双轨
+- `engine-rs/README.md`：Rust 引擎说明、命令面、能力清单、踩坑归档。
+- `dist/samples/OMML-CHEATSHEET.md`：OMML 公式写法速查表 + Cambria Math 字体提示硬性要求。
+- 顶层 README 加"引擎实现：.NET（稳定） 与 Rust（alpha）"对照表。
 
 ### Changed
 - 架构重写（分阶段 R0–R4，全程 golden 守护，逐字节零回归）：
@@ -24,9 +40,18 @@
   尚未由 FormatPlan 覆盖；`apply`/`render` 作为遗留命令**保留且仍支持**，
   待 FormatPlan 达到能力对等后再收敛删除（零能力损失约束）。
 - FormatPlan 专用校验器待补；`validate_decision.py` 仍只校验旧 decision。
+- Rust 引擎 `analyze` 鲁棒性：仅在引擎自产 docx 上验过 100% 字段比对；
+  野生 Word/WPS 输入未测。
 
 ### Fixed
-- 待修复内容入此节。
+- Rust 引擎在真 Word 渲染中暴露的 4 处问题（已修复并通过实测）：
+  - REF 字段数字未上标：`<w:fldSimple>` 在部分 Word 版本里丢失缓存 run 的 rPr。
+    改用复杂字段（begin / separate / end），每个 run 各带 vertAlign superscript。
+  - 表注 caption 在表下：与 SKILL 规定"表注默认放表上方"不符。调换 caption emit 顺序。
+  - OMML 公式被当文本渲染：每个 `<m:r>` 必须带 `<w:rFonts w:ascii="Cambria Math"/>`
+    字体提示；缺失则 Word 走文本回退。样例与速查表已统一带上。
+  - F9 更新后参考文献变 `[[1]]`：原书签包了整个 `[1]`，更新时 REF 拉回整段加上外面的
+    括号变成双括号。改为书签只包数字、方括号在书签外作为兄弟 run。
 
 ## [0.1.0] - 2026-05-19
 

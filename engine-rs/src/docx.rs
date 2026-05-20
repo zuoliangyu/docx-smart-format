@@ -467,13 +467,23 @@ fn render_block(
                 if let Some(&bid) = rn.refs.get(&n) {
                     let rpr = run_properties(block.format.as_ref(), doc, None, false);
                     let mut runs = String::new();
+                    // Bookmark wraps ONLY the digit, with the brackets as
+                    // sibling runs. This way F9-updating a body REF field
+                    // pulls back just "n", so the citation stays "[1]"
+                    // instead of expanding to "[[1]]".
+                    runs.push_str(&format!(
+                        r#"<w:r>{rpr}<w:t>[</w:t></w:r>"#
+                    ));
                     runs.push_str(&format!(
                         r#"<w:bookmarkStart w:id="{bid}" w:name="{BOOKMARK_PREFIX}{n}"/>"#
                     ));
                     runs.push_str(&format!(
-                        r#"<w:r>{rpr}<w:t xml:space="preserve">[{n}]</w:t></w:r>"#
+                        r#"<w:r>{rpr}<w:t>{n}</w:t></w:r>"#
                     ));
                     runs.push_str(&format!(r#"<w:bookmarkEnd w:id="{bid}"/>"#));
+                    runs.push_str(&format!(
+                        r#"<w:r>{rpr}<w:t>]</w:t></w:r>"#
+                    ));
                     runs.push_str(&format!(r#"<w:r>{rpr}<w:tab/></w:r>"#));
                     if !content.is_empty() {
                         runs.push_str(&format!(

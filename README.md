@@ -17,6 +17,19 @@
 - **本地、离线**：skill 不联网，所有模板规则在 `references/`。
 - **可校验**：`scripts/validate_decision.py` 校验旧版 decision 结构（FormatPlan 校验器待后续提供）。
 
+## 引擎实现：.NET（稳定） 与 Rust（alpha）
+
+仓库内并存两套引擎实现，**共用同一份 `FormatPlan` 契约**：
+
+| 引擎 | 路径 | 大小 | 运行时依赖 | 平台 | 状态 |
+|---|---|---|---|---|---|
+| .NET 8 / `DocumentFormat.OpenXml` | `engine/src/` | 自包含 ~60MB 多文件 / 单文件压缩 38MB | 零（自包含） | 仅 Windows x64 | 稳定，承载 SKILL.md 全部能力 |
+| **Rust（raw-OOXML 手写）** | `engine-rs/` | **0.4MB 单文件** | **零** | **跨平台** | **alpha**，能力详见 `engine-rs/README.md` |
+
+Rust 引擎 alpha 已覆盖 `analyze` + `build`（含多分节、表格、图片、参考文献规范化、OMML 公式、VML 竖排页码、AutoFormat 化学式/单位指数），并在真实 Word 上验证渲染。`apply` / `render` legacy 命令仅在 .NET 引擎可用（毕业论文预设、模板化结构重排尚未由 FormatPlan 完整覆盖）。
+
+测试包：[`docx-smart-engine-rs-alpha-win-x64.zip`](engine-rs/) — 单 exe + 6 个样例 + OMML 速查表，约 295 KB。
+
 ## 平台与依赖
 
 - **当前仅支持 Windows x64**。`engine/runtime/docx-auto-template-engine.exe` 是 .NET self-contained 部署。macOS / Linux 暂未发布预编译产物；可按 `CONTRIBUTING.md` 自行构建对应 RID。
