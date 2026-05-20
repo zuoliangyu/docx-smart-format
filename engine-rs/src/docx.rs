@@ -1100,17 +1100,18 @@ fn paragraph_properties_inner(
         || hanging_chars.is_some()
     {
         let mut ind = String::from("<w:ind");
-        // Chars-based indent scales with font size (Chinese convention
-        // "2 字符" → 200 = 2 chars). Twips-based is a fixed width.
-        // Word picks chars when both are set, so when chars is provided
-        // we explicitly emit firstLine=0 to suppress any inherited twips.
+        // Char-based: emit ONLY firstLineChars. Word's actual behavior
+        // when firstLine sits alongside is to treat it as the absolute
+        // value (twips wins), even though the spec says firstLineChars
+        // should win. Real Word output for Chinese docs only carries
+        // firstLineChars / hangingChars without the twips companion.
         if let Some(v) = first_line_chars {
-            ind.push_str(&format!(r#" w:firstLine="0" w:firstLineChars="{}""#, xml_escape(&v)));
+            ind.push_str(&format!(r#" w:firstLineChars="{}""#, xml_escape(&v)));
         } else if let Some(v) = first_line {
             ind.push_str(&format!(r#" w:firstLine="{}""#, xml_escape(&v)));
         }
         if let Some(v) = hanging_chars {
-            ind.push_str(&format!(r#" w:hanging="0" w:hangingChars="{}""#, xml_escape(&v)));
+            ind.push_str(&format!(r#" w:hangingChars="{}""#, xml_escape(&v)));
         } else if let Some(v) = hanging {
             ind.push_str(&format!(r#" w:hanging="{}""#, xml_escape(&v)));
         }
