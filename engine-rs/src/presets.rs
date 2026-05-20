@@ -124,28 +124,18 @@ fn thesis_format(
     line: &str,
     line_rule: &str,
 ) -> PlanFormat {
-    // NOTE: FormatPlan exposes firstLineIndent/hangingIndent in twips;
-    // the thesis spec is in 1/100 character units (firstLineChars=200 =
-    // 2 chars). We approximate by converting to twips at 12pt base:
-    // 2 chars × ~12pt × 20 (twips/pt) / 2 (12pt half-pt) ≈ 480 twips.
-    // .NET uses dedicated Chars fields; Rust FormatPlan currently only
-    // has twips. 480 twips = ~24pt indent which matches 2 Chinese chars
-    // at 12pt visually.
-    let first_line_indent = first_line_chars.map(|c| match c {
-        "200" => "480".to_string(),
-        other => other.to_string(),
-    });
-    let hanging_indent = hanging_chars.map(|c| match c {
-        "200" => "480".to_string(),
-        other => other.to_string(),
-    });
-
+    // FormatPlan now exposes both twips (firstLineIndent/hangingIndent)
+    // and 1/100-char (firstLineChars/hangingChars). The thesis spec is
+    // in char units -- "首行缩进 2 字符" → firstLineChars="200" --
+    // because Chinese typesetting wants the indent to scale with font
+    // size. Use the char-based field directly; the renderer suppresses
+    // any inherited twips when chars is set.
     PlanFormat {
         bold: if bold { Some(true) } else { None },
         align: Some(align.to_string()),
         page_break_before: if page_break_before { Some(true) } else { None },
-        first_line_indent,
-        hanging_indent,
+        first_line_chars: first_line_chars.map(String::from),
+        hanging_chars: hanging_chars.map(String::from),
         before_spacing: Some(before.to_string()),
         after_spacing: Some(after.to_string()),
         line_spacing: Some(line.to_string()),
@@ -175,7 +165,9 @@ fn merge_into(dst: &mut PlanFormat, src: &PlanFormat) {
     fill!(font_pt);
     fill!(align);
     fill!(first_line_indent);
+    fill!(first_line_chars);
     fill!(hanging_indent);
+    fill!(hanging_chars);
     fill!(line_spacing);
     fill!(line_spacing_rule);
     fill!(style_id);

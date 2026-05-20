@@ -1091,13 +1091,27 @@ fn paragraph_properties_inner(
     }
 
     let first_line = fmt.and_then(|f| f.first_line_indent.clone());
+    let first_line_chars = fmt.and_then(|f| f.first_line_chars.clone());
     let hanging = fmt.and_then(|f| f.hanging_indent.clone());
-    if first_line.is_some() || hanging.is_some() {
+    let hanging_chars = fmt.and_then(|f| f.hanging_chars.clone());
+    if first_line.is_some()
+        || first_line_chars.is_some()
+        || hanging.is_some()
+        || hanging_chars.is_some()
+    {
         let mut ind = String::from("<w:ind");
-        if let Some(v) = first_line {
+        // Chars-based indent scales with font size (Chinese convention
+        // "2 字符" → 200 = 2 chars). Twips-based is a fixed width.
+        // Word picks chars when both are set, so when chars is provided
+        // we explicitly emit firstLine=0 to suppress any inherited twips.
+        if let Some(v) = first_line_chars {
+            ind.push_str(&format!(r#" w:firstLine="0" w:firstLineChars="{}""#, xml_escape(&v)));
+        } else if let Some(v) = first_line {
             ind.push_str(&format!(r#" w:firstLine="{}""#, xml_escape(&v)));
         }
-        if let Some(v) = hanging {
+        if let Some(v) = hanging_chars {
+            ind.push_str(&format!(r#" w:hanging="0" w:hangingChars="{}""#, xml_escape(&v)));
+        } else if let Some(v) = hanging {
             ind.push_str(&format!(r#" w:hanging="{}""#, xml_escape(&v)));
         }
         ind.push_str("/>");

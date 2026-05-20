@@ -120,7 +120,12 @@ pub struct PlanFormat {
     pub font_pt: Option<f64>,
     pub align: Option<String>,
     pub first_line_indent: Option<String>,
+    /// 首行缩进 (单位:1/100 字符宽度)。"200" = 真 2 字符,随字号伸缩。
+    /// 中文规范的"首行缩进 2 字符"权威表达。优先级高于 firstLineIndent。
+    pub first_line_chars: Option<String>,
     pub hanging_indent: Option<String>,
+    /// 悬挂缩进 (单位:1/100 字符宽度)。参考文献条目用 "200" = 2 字符。
+    pub hanging_chars: Option<String>,
     pub line_spacing: Option<String>,
     /// auto | exact | atLeast. Default auto when unset.
     pub line_spacing_rule: Option<String>,
