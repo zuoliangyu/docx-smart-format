@@ -46,9 +46,9 @@ jobs:
           ENGINE="engine-rs/target/release/docx-auto-template-engine${{ matrix.exe_suffix }}"
           test -x "$ENGINE"
           mkdir -p ci-out
-          for plan in dist/samples/01-basic.json dist/samples/02-autoformat.json \
-                      dist/samples/04-vertical-pagenum.json dist/samples/05-omml-equation.json \
-                      dist/samples/07-thesis-preset.json dist/samples/09-firstline-scale-test.json; do
+          for plan in examples/01-basic.json examples/02-autoformat.json \
+                      examples/04-vertical-pagenum.json examples/05-omml-equation.json \
+                      examples/07-thesis-preset.json examples/09-firstline-scale-test.json; do
             name=$(basename "$plan" .json)
             "$ENGINE" build --plan "$plan" --output "ci-out/${name}.docx"
             test -s "ci-out/${name}.docx"
@@ -61,7 +61,7 @@ jobs:
           set -euo pipefail
           ENGINE="engine-rs/target/release/docx-auto-template-engine${{ matrix.exe_suffix }}"
           "$ENGINE" build \
-            --plan dist/samples/03-references.json \
+            --plan examples/03-references.json \
             --output ci-out/03-references.docx \
             --normalize-references
           test -s ci-out/03-references.docx
@@ -73,8 +73,8 @@ jobs:
           set -euo pipefail
           ENGINE="engine-rs/target/release/docx-auto-template-engine${{ matrix.exe_suffix }}"
           "$ENGINE" build \
-            --plan dist/samples/08-template-apply.json \
-            --template dist/samples/template.docx \
+            --plan examples/08-template-apply.json \
+            --template examples/template.docx \
             --output ci-out/08-template-apply.docx
           test -s ci-out/08-template-apply.docx
           echo "OK 08-template-apply"

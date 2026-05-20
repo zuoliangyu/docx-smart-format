@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   build-and-release:
-    name: Build & attach (${{ matrix.rid }})
+    name: Build & attach Skill bundle (${{ matrix.rid }})
     strategy:
       fail-fast: false
       matrix:
@@ -50,28 +50,50 @@ jobs:
         working-directory: engine-rs
         run: cargo build --release --locked
 
-      - name: Stage payload
+      - name: Stage Skill bundle (Skill files + compiled engine, NO Rust source)
         shell: bash
         run: |
           set -euo pipefail
-          STAGING="staging/docx-smart-engine"
+          # The folder name here is what users drop into ~/.claude/skills/
+          STAGING="staging/docx-smart-format"
           mkdir -p "$STAGING"
-          cp engine-rs/target/release/docx-auto-template-engine${{ matrix.exe_suffix }} "$STAGING/"
-          cp -r dist/samples "$STAGING/"
-          cp dist/README.txt "$STAGING/"
-          cp LICENSE NOTICE CHANGELOG.md "$STAGING/" || true
-          ls -la "$STAGING/"
 
-      - name: Zip payload
+          # Skill content (the product)
+          cp SKILL.md "$STAGING/"
+          cp README.md "$STAGING/"
+          cp LICENSE NOTICE CHANGELOG.md "$STAGING/" 2>/dev/null || true
+          cp -r references "$STAGING/"
+          cp -r agents "$STAGING/"
+          cp -r scripts "$STAGING/"
+          cp -r examples "$STAGING/"
+
+          # Compiled engine binary (the dependency). Source code stays
+          # behind in engine-rs/ and is NEVER included in the release zip.
+          mkdir -p "$STAGING/engine"
+          cp engine-rs/target/release/docx-auto-template-engine${{ matrix.exe_suffix }} \
+             "$STAGING/engine/"
+
+          echo "=== Staged Skill bundle contents ==="
+          find "$STAGING" -maxdepth 2 -type f | sort
+          echo ""
+          echo "=== Verifying NO Rust source in bundle ==="
+          if find "$STAGING" -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' 2>/dev/null | grep -q .; then
+            echo "ERROR: Rust source leaked into Skill bundle"
+            find "$STAGING" -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock'
+            exit 1
+          fi
+          echo "OK -- no .rs / Cargo files in bundle"
+
+      - name: Zip Skill bundle
         shell: bash
         run: |
           set -euo pipefail
           TAG="${{ steps.tag.outputs.tag }}"
-          NAME="docx-smart-engine-${TAG}-${{ matrix.rid }}.zip"
+          NAME="docx-smart-format-${TAG}-${{ matrix.rid }}.zip"
           if [ "${{ runner.os }}" = "Windows" ]; then
-            powershell -Command "Compress-Archive -Path staging/docx-smart-engine/* -DestinationPath '$NAME'"
+            powershell -Command "Compress-Archive -Path staging/docx-smart-format -DestinationPath '$NAME'"
           else
-            (cd staging/docx-smart-engine && zip -r "../../$NAME" .)
+            (cd staging && zip -r "../$NAME" docx-smart-format)
           fi
           ls -la "$NAME"
           echo "ASSET_NAME=$NAME" >> "$GITHUB_ENV"

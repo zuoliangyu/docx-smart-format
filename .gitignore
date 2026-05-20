@@ -31,8 +31,15 @@ analysis.json.tmp
 # Rust engine build output
 engine-rs/target/
 
-# Distribution package: samples + README are tracked; the engine exe and
-# generated test outputs are build/run artifacts. Release zip is also gitignored.
-dist/docx-auto-template-engine.exe
-dist/output/
-docx-smart-engine-rs-alpha-*.zip
+# Release zips built locally for testing
+docx-smart-format-*.zip
+docx-smart-engine-*.zip
+
+# Local "run the examples" scratch (examples themselves ARE tracked)
+examples/output/
+
+# Claude Code local config
+.claude/
+
+# Scratch dir for testing analyze on wild docx
+tests/

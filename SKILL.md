@@ -23,14 +23,18 @@ LLM 输出**唯一一种契约**：`FormatPlan`。引擎把它降级为内部表
 
 ## 两条命令
 
+引擎位于 Skill 包内 `<skill-dir>/engine/docx-auto-template-engine[.exe]`,LLM 调用时用完整路径。
+
 ```powershell
 # 1. 重排现有文档时，先分析源 docx（从零生成可跳过）
-docx-auto-template-engine.exe analyze --input <input.docx> --output <analysis.json>
+<skill-dir>/engine/docx-auto-template-engine.exe analyze --input <input.docx> --output <analysis.json>
 
 # 2. 写回：有 --source 即重排，无 --source 即从零生成
-docx-auto-template-engine.exe build --plan <format-plan.json> --output <result.docx> `
+<skill-dir>/engine/docx-auto-template-engine.exe build --plan <format-plan.json> --output <result.docx> `
     [--source <input.docx>] [--template <template.docx>] [--normalize-references]
 ```
+
+其中 `<skill-dir>` 通常是 `~/.claude/skills/docx-smart-format/`(Windows: `C:\Users\<USER>\.claude\skills\docx-smart-format\`) 或 `~/.codex/skills/docx-smart-format/`。
 
 `analyze` 输出里每个 body 块有稳定 `path`（如 `/body/paragraph[2]`），就是 `FormatPlan` 块里 `ref` 要填的值。
 
