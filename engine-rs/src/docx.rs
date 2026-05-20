@@ -1239,7 +1239,17 @@ fn run_properties(
         inner.push_str(&format!(r#"<w:sz w:val="{s}"/><w:szCs w:val="{s}"/>"#));
     }
 
-    format!("<w:rPr>{inner}</w:rPr>")
+    // OOXML precedence:  direct rPr > paragraph-style rPr > docDefaults.
+    // An EMPTY <w:rPr></w:rPr> is treated by Word as a present-but-empty
+    // direct-format layer that wins over the style's rPr -- which masks
+    // the style's bold/size/etc and makes <w:pStyle w:val="Heading1"/>
+    // appear to do nothing. When we have no direct overrides to emit,
+    // return an empty string so the caller skips the rPr element entirely.
+    if inner.is_empty() {
+        String::new()
+    } else {
+        format!("<w:rPr>{inner}</w:rPr>")
+    }
 }
 
 fn section_inner(
