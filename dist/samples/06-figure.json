@@ -1,0 +1,23 @@
+{
+  "document": {
+    "cnFont": "宋体",
+    "enFont": "Times New Roman",
+    "baseFontPt": 12
+  },
+  "blocks": [
+    {
+      "role": "heading1",
+      "text": "图测试"
+    },
+    {
+      "role": "figure",
+      "image": {
+        "path": "samples/pixel.png",
+        "widthEmu": 914400,
+        "heightEmu": 914400,
+        "altText": "示意图"
+      },
+      "caption": "图1 像素图"
+    }
+  ]
+}
