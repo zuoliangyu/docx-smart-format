@@ -15,6 +15,7 @@
 use crate::analyze::SourceBlock;
 use crate::autoformat;
 use crate::plan::{FormatPlan, PlanBlock, PlanDocument, PlanFormat, PlanSection};
+use crate::presets;
 use crate::refs::{self, RefNormalize, BOOKMARK_PREFIX, DEFAULT_HANGING_CHARS, DEFAULT_TAB_POSITION};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Write;
@@ -65,8 +66,23 @@ pub fn build(
     source: Option<&HashMap<String, SourceBlock>>,
     normalize_refs: bool,
 ) -> std::io::Result<()> {
+    // Clone so a preset can fill in defaults without mutating the caller's plan.
+    let mut plan = plan.clone();
+
+    // Preset application happens before anything else — it must finish
+    // before HF parts / RefNormalize / rendering, since it mutates blocks
+    // and document.headerFooter.
+    let preset_enabled = presets::is_undergraduate_thesis(&plan.document);
+    if preset_enabled {
+        presets::apply_undergraduate_thesis(&mut plan);
+    }
+    // The thesis preset auto-enables reference normalization (mirrors .NET
+    // template-preset=builtin-undergraduate-thesis behavior). Callers can
+    // still pass --normalize-references false to override.
+    let normalize_refs = normalize_refs || preset_enabled;
+
     let rn_owned: Option<RefNormalize> = if normalize_refs {
-        let r = RefNormalize::collect(plan);
+        let r = RefNormalize::collect(&plan);
         if r.is_active() { Some(r) } else { None }
     } else {
         None
@@ -75,21 +91,62 @@ pub fn build(
 
     let mut pkg = Package::new();
 
-    // Footer first so it keeps rId1 (parity with the RS2 layout).
-    let footer_rid = if let Some(footer_xml) = footer_part(&plan.document) {
-        let rid = pkg.add_rel(&format!("{R_NS}/footer"), "footer1.xml");
-        pkg.overrides.push((
-            "/word/footer1.xml".to_string(),
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml".to_string(),
-        ));
+    // Collect every header/footer part required by the plan. Drives:
+    //   - per-part OPC entry (word/header*.xml or word/footer*.xml)
+    //   - per-part document relationship (so sectPr can reference it)
+    //   - settings.xml emission when any part is type != "default"
+    let hf_parts = collect_hf_parts(&plan.document);
+    let mut hf_refs: HfRefs = HfRefs::default();
+    let mut header_seq = 0u32;
+    let mut footer_seq = 0u32;
+    let mut needs_even_odd = false;
+    for hf in &hf_parts {
+        let (filename, content_type) = match hf.kind {
+            "header" => {
+                header_seq += 1;
+                (
+                    format!("header{}.xml", header_seq),
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml",
+                )
+            }
+            "footer" => {
+                footer_seq += 1;
+                (
+                    format!("footer{}.xml", footer_seq),
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml",
+                )
+            }
+            _ => unreachable!(),
+        };
+        let rel_type = format!("{R_NS}/{}", hf.kind);
+        let rid = pkg.add_rel(&rel_type, &filename);
+        pkg.overrides
+            .push((format!("/word/{filename}"), content_type.into()));
         pkg.parts
-            .push(("word/footer1.xml".to_string(), footer_xml.into_bytes(), false));
-        Some(rid)
-    } else {
-        None
-    };
+            .push((format!("word/{filename}"), hf.xml.clone().into_bytes(), false));
+        hf_refs.insert(hf.kind, hf.type_, rid);
+        if hf.type_ == "even" || hf.type_ == "first" {
+            needs_even_odd = true;
+        }
+    }
 
-    let document_xml = render_document(plan, &mut pkg, footer_rid.as_deref(), source, rn);
+    // Word needs an explicit settings.xml part with <w:evenAndOddHeaders/>
+    // to actually render odd vs even differently — without this the docx
+    // package still parses, but Word ignores the even-typed parts.
+    if needs_even_odd {
+        let _ = pkg.add_rel(&format!("{R_NS}/settings"), "settings.xml");
+        pkg.overrides.push((
+            "/word/settings.xml".into(),
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml".into(),
+        ));
+        pkg.parts.push((
+            "word/settings.xml".into(),
+            build_settings_xml(needs_even_odd).into_bytes(),
+            false,
+        ));
+    }
+
+    let document_xml = render_document(&plan, &mut pkg, &hf_refs, source, rn);
 
     let file = std::fs::File::create(output)?;
     let mut zip = zip::ZipWriter::new(file);
@@ -161,6 +218,122 @@ fn document_rels(pkg: &Package) -> String {
     }
     s.push_str("</Relationships>");
     s
+}
+
+/// One header or footer OPC part required by the plan.
+struct HfPart {
+    kind: &'static str,   // "header" | "footer"
+    type_: &'static str,  // "default" | "even" | "first"
+    xml: String,
+}
+
+/// Maps (kind, type_) -> assigned rId. Lookup from sectPr emission.
+#[derive(Default)]
+struct HfRefs {
+    inner: std::collections::HashMap<(&'static str, &'static str), String>,
+}
+
+impl HfRefs {
+    fn insert(&mut self, kind: &'static str, type_: &'static str, rid: String) {
+        self.inner.insert((kind, type_), rid);
+    }
+    fn headers(&self) -> Vec<(&'static str, &str)> {
+        let mut v: Vec<_> = self.inner.iter()
+            .filter(|((k, _), _)| *k == "header")
+            .map(|((_, t), r)| (*t, r.as_str()))
+            .collect();
+        v.sort_by_key(|(t, _)| order_for(t));
+        v
+    }
+    fn footers(&self) -> Vec<(&'static str, &str)> {
+        let mut v: Vec<_> = self.inner.iter()
+            .filter(|((k, _), _)| *k == "footer")
+            .map(|((_, t), r)| (*t, r.as_str()))
+            .collect();
+        v.sort_by_key(|(t, _)| order_for(t));
+        v
+    }
+}
+
+fn order_for(t: &str) -> u8 {
+    // sectPr child-order is fixed; among the headerReference/footerReference
+    // siblings the OOXML schema doesn't care about ordering between types,
+    // but a stable order is nicer for diffing.
+    match t { "default" => 0, "even" => 1, "first" => 2, _ => 99 }
+}
+
+fn collect_hf_parts(doc: &PlanDocument) -> Vec<HfPart> {
+    if presets::is_undergraduate_thesis(doc) {
+        return thesis_hf_parts(doc);
+    }
+    // Pre-RS12 behavior: a single default footer when page_number is set.
+    if let Some(xml) = footer_part(doc) {
+        return vec![HfPart { kind: "footer", type_: "default", xml }];
+    }
+    Vec::new()
+}
+
+fn thesis_hf_parts(doc: &PlanDocument) -> Vec<HfPart> {
+    let uni = doc
+        .thesis_university
+        .as_deref()
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or("XXX大学");
+    let title = doc
+        .thesis_title
+        .as_deref()
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or("论文标题");
+    vec![
+        HfPart {
+            kind: "header",
+            type_: "default",
+            xml: build_header_xml(doc, &format!("{uni}毕业论文")),
+        },
+        HfPart {
+            kind: "header",
+            type_: "even",
+            xml: build_header_xml(doc, title),
+        },
+        HfPart {
+            kind: "footer",
+            type_: "default",
+            xml: build_page_number_footer_xml(doc),
+        },
+        HfPart {
+            kind: "footer",
+            type_: "even",
+            xml: build_page_number_footer_xml(doc),
+        },
+    ]
+}
+
+fn build_header_xml(doc: &PlanDocument, text: &str) -> String {
+    let rpr = run_properties(None, doc, None, false);
+    format!(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:hdr xmlns:w="{W_NS}"><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r>{rpr}<w:t xml:space="preserve">{}</w:t></w:r></w:p></w:hdr>"#,
+        xml_escape(text)
+    )
+}
+
+fn build_page_number_footer_xml(doc: &PlanDocument) -> String {
+    let rpr = run_properties(None, doc, None, false);
+    format!(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:ftr xmlns:w="{W_NS}"><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r>{rpr}<w:t xml:space="preserve">第 </w:t></w:r><w:fldSimple w:instr=" PAGE "><w:r>{rpr}<w:t>1</w:t></w:r></w:fldSimple><w:r>{rpr}<w:t xml:space="preserve"> 页</w:t></w:r></w:p></w:ftr>"#
+    )
+}
+
+fn build_settings_xml(even_odd: bool) -> String {
+    let mut settings = String::new();
+    if even_odd {
+        settings.push_str("<w:evenAndOddHeaders/>");
+    }
+    format!(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:settings xmlns:w="{W_NS}">{settings}</w:settings>"#
+    )
 }
 
 /// Centered PAGE-field footer. Mirrors .NET NeedsPageNumberFooter.
@@ -310,7 +483,7 @@ enum BodyElem {
 fn render_document(
     plan: &FormatPlan,
     pkg: &mut Package,
-    footer_rid: Option<&str>,
+    hf_refs: &HfRefs,
     source: Option<&HashMap<String, SourceBlock>>,
     rn: Option<&RefNormalize>,
 ) -> String {
@@ -349,12 +522,12 @@ fn render_document(
             }
             body.push_str(&format!(
                 "<w:sectPr>{}</w:sectPr>",
-                section_inner(section, &plan.document, false, footer_rid)
+                section_inner(section, &plan.document, false, hf_refs)
             ));
         } else {
             let sect = format!(
                 "<w:sectPr>{}</w:sectPr>",
-                section_inner(section, &plan.document, true, footer_rid)
+                section_inner(section, &plan.document, true, hf_refs)
             );
             let host_in_last_para = matches!(elems.last(), Some(BodyElem::Para(_)));
             if !host_in_last_para {
@@ -696,6 +869,10 @@ fn equation_para(doc: &PlanDocument, block: &PlanBlock) -> Para {
         pf.and_then(|f| f.line_spacing.clone())
             .or_else(|| doc.line_spacing.map(|ls| ((240.0 * ls).round() as i64).to_string()))
     };
+    let line_rule = pf
+        .and_then(|f| f.line_spacing_rule.as_deref())
+        .and_then(map_line_rule)
+        .unwrap_or("auto");
     if before.is_some() || after.is_some() || line.is_some() {
         let mut sp = String::from("<w:spacing");
         if let Some(v) = before {
@@ -705,7 +882,11 @@ fn equation_para(doc: &PlanDocument, block: &PlanBlock) -> Para {
             sp.push_str(&format!(r#" w:after="{}""#, xml_escape(&v)));
         }
         if let Some(v) = line {
-            sp.push_str(&format!(r#" w:line="{}" w:lineRule="auto""#, xml_escape(&v)));
+            sp.push_str(&format!(
+                r#" w:line="{}" w:lineRule="{}""#,
+                xml_escape(&v),
+                line_rule
+            ));
         }
         sp.push_str("/>");
         ppr.push_str(&sp);
@@ -889,6 +1070,10 @@ fn paragraph_properties_inner(fmt: Option<&PlanFormat>, doc: &PlanDocument) -> S
         .or_else(|| doc.line_spacing.map(|ls| ((240.0 * ls).round() as i64).to_string()));
     let before = fmt.and_then(|f| f.before_spacing.clone());
     let after = fmt.and_then(|f| f.after_spacing.clone());
+    let line_rule = fmt
+        .and_then(|f| f.line_spacing_rule.as_deref())
+        .and_then(map_line_rule)
+        .unwrap_or("auto");
     if line.is_some() || before.is_some() || after.is_some() {
         let mut sp = String::from("<w:spacing");
         if let Some(v) = before {
@@ -898,7 +1083,11 @@ fn paragraph_properties_inner(fmt: Option<&PlanFormat>, doc: &PlanDocument) -> S
             sp.push_str(&format!(r#" w:after="{}""#, xml_escape(&v)));
         }
         if let Some(v) = line {
-            sp.push_str(&format!(r#" w:line="{}" w:lineRule="auto""#, xml_escape(&v)));
+            sp.push_str(&format!(
+                r#" w:line="{}" w:lineRule="{}""#,
+                xml_escape(&v),
+                line_rule
+            ));
         }
         sp.push_str("/>");
         inner.push_str(&sp);
@@ -966,13 +1155,19 @@ fn section_inner(
     section: Option<&PlanSection>,
     doc: &PlanDocument,
     is_break: bool,
-    footer_rid: Option<&str>,
+    hf_refs: &HfRefs,
 ) -> String {
     let mut out = String::new();
 
-    if let Some(rid) = footer_rid {
+    // headerReference / footerReference must come first in sectPr.
+    for (type_, rid) in hf_refs.headers() {
         out.push_str(&format!(
-            r#"<w:footerReference w:type="default" r:id="{rid}"/>"#
+            r#"<w:headerReference w:type="{type_}" r:id="{rid}"/>"#
+        ));
+    }
+    for (type_, rid) in hf_refs.footers() {
+        out.push_str(&format!(
+            r#"<w:footerReference w:type="{type_}" r:id="{rid}"/>"#
         ));
     }
 
@@ -1098,6 +1293,15 @@ fn map_section_type(v: &str) -> Option<&'static str> {
         "oddpage" => Some("oddPage"),
         "nextcolumn" => Some("nextColumn"),
         "nextpage" => Some("nextPage"),
+        _ => None,
+    }
+}
+
+fn map_line_rule(v: &str) -> Option<&'static str> {
+    match v.trim().to_ascii_lowercase().as_str() {
+        "auto" => Some("auto"),
+        "exact" => Some("exact"),
+        "atleast" | "at-least" => Some("atLeast"),
         _ => None,
     }
 }

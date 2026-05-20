@@ -1,0 +1,49 @@
+{
+  "document": {
+    "preset": "undergraduate-thesis",
+    "thesisUniversity": "示范大学",
+    "thesisTitle": "Rust 引擎全替代 .NET 的可行性研究"
+  },
+  "blocks": [
+    {
+      "role": "heading1",
+      "text": "第一章 引言"
+    },
+    {
+      "role": "body",
+      "text": "本文综述了 X 与 Y[1]，并参考了 Z[2,3] 和 W[1-3]。"
+    },
+    {
+      "role": "heading2",
+      "text": "1.1 研究背景"
+    },
+    {
+      "role": "body",
+      "text": "正文段。化学式 H2O 与 m2，公式见下。"
+    },
+    {
+      "role": "heading1",
+      "text": "第二章 结论"
+    },
+    {
+      "role": "body",
+      "text": "结论段。"
+    },
+    {
+      "role": "heading1",
+      "text": "参考文献"
+    },
+    {
+      "role": "reference",
+      "text": "[1] Author A. Title. Journal, 2026."
+    },
+    {
+      "role": "reference",
+      "text": "[2] Author B. Title. Journal, 2026."
+    },
+    {
+      "role": "reference",
+      "text": "[3] Author C. Title. Journal, 2026."
+    }
+  ]
+}

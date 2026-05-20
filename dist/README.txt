@@ -19,6 +19,7 @@ docx-smart-engine (Rust) — 测试包
     04-vertical-pagenum.json      横向页 + 左侧竖排页码 (VML 双轨)
     05-omml-equation.json         4 个真 OMML 公式 (上标/下标/分数/嵌套)
     06-figure.json                图片插入（用 samples/pixel.png）
+    07-thesis-preset.json         毕业论文预设 (奇偶页眉 + 中文宋体 + 字号字距)
     pixel.png                     图片样例
     OMML-CHEATSHEET.md            OMML 公式写法速查表
   README.txt                      本文件
@@ -53,7 +54,19 @@ docx-smart-engine (Rust) — 测试包
          --plan samples\04-vertical-pagenum.json `
          --output out-vml.docx
 
-  5. 其它样例同样替换 --plan 参数即可。
+  5. 毕业论文一键预设（无需提供任何模板 docx，纯 FormatPlan 指定）：
+
+     .\docx-auto-template-engine.exe build `
+         --plan samples\07-thesis-preset.json `
+         --output out-thesis.docx
+
+     预设效果：A4 portrait、宋体/Times New Roman、12pt、20pt 固定行距、
+     标题级别字号、首行缩进 2 字符、参考文献悬挂缩进、奇数页眉
+     "XX大学毕业论文"、偶数页眉论文标题、页脚居中页码、自动启用参考
+     文献规范化。修改 thesisUniversity / thesisTitle 字段定制学校与
+     论文名。
+
+  6. 其它样例同样替换 --plan 参数即可。
 
 
 命令面（唯二命令）

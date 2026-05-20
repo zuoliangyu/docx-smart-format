@@ -26,7 +26,7 @@
 | .NET 8 / `DocumentFormat.OpenXml` | `engine/src/` | 自包含 ~60MB 多文件 / 单文件压缩 38MB | 零（自包含） | 仅 Windows x64 | 稳定，承载 SKILL.md 全部能力 |
 | **Rust（raw-OOXML 手写）** | `engine-rs/` | **0.4MB 单文件** | **零** | **跨平台** | **alpha**，能力详见 `engine-rs/README.md` |
 
-Rust 引擎 alpha 已覆盖 `analyze` + `build`（含多分节、表格、图片、参考文献规范化、OMML 公式、VML 竖排页码、AutoFormat 化学式/单位指数），并在真实 Word 上验证渲染。`apply` / `render` legacy 命令仅在 .NET 引擎可用（毕业论文预设、模板化结构重排尚未由 FormatPlan 完整覆盖）。
+Rust 引擎 alpha 已覆盖 `analyze` + `build`，含多分节、表格、图片、参考文献规范化、OMML 公式、VML 竖排页码、AutoFormat 化学式/单位指数、**毕业论文预设** (`document.preset: "undergraduate-thesis"`)，并在真实 Word 上验证渲染。仅"模板化结构重排" (`apply --template <docx>`，按用户提供的模板 docx 做样式映射) 尚未由 Rust 覆盖；其余 .NET 独有能力均已迁移完毕。
 
 测试包：[`docx-smart-engine-rs-alpha-win-x64.zip`](engine-rs/) — 单 exe + 6 个样例 + OMML 速查表，约 295 KB。
 

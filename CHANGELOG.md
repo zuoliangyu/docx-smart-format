@@ -24,6 +24,14 @@
   - RS9 参考文献规范化（`--normalize-references`）：reference 块 `[n]<Tab>` + 书签；正文上标 `[n]` / `[n,m]` / `[n-m]` 转 REF 复杂字段交叉引用
   - RS10 OMML 公式：原样嵌入调用方的 `<m:oMath>`/`<m:oMathPara>`；display 模式自动外裹 `<m:oMathPara>` + `centerGroup`
   - RS11 VML 双轨竖排页码：`mc:AlternateContent` + `wps:wsp` + VML `v:rect` 双轨
+  - **RS12 毕业论文预设**：`document.preset: "undergraduate-thesis"` 一键填充
+    A4 + 中文宋体/英文 TNR + 12pt + 20pt exact 行距 + 标题字号(18/16/14pt 粗 +
+    pageBreakBefore) + 正文首行缩进 2 字符 + 参考文献悬挂缩进 + 奇偶页眉
+    (`document.thesisUniversity` / `thesisTitle` 控制文本) + 居中 PAGE 字段
+    页脚 + 自动启用 `--normalize-references`。`PlanFormat` 新增 `lineSpacingRule`
+    字段(auto/exact/atLeast)；docx.rs hf 部件机制泛化为多 HfPart + 自动
+    emit `word/settings.xml` 含 `<w:evenAndOddHeaders/>`。完成后 Rust 引擎对
+    "毕业论文重排"场景与 .NET 完全等价,**用户可不装 .NET**。
 - `engine-rs/README.md`：Rust 引擎说明、命令面、能力清单、踩坑归档。
 - `dist/samples/OMML-CHEATSHEET.md`：OMML 公式写法速查表 + Cambria Math 字体提示硬性要求。
 - 顶层 README 加"引擎实现：.NET（稳定） 与 Rust（alpha）"对照表。
@@ -36,9 +44,10 @@
 - `decision-schema.md` 移除，由 `format-plan-schema.md` 取代。
 
 ### Deferred / Known gaps
-- 逐部件页眉控制、`builtin-undergraduate-thesis` 预设、模板化结构重排
-  尚未由 FormatPlan 覆盖；`apply`/`render` 作为遗留命令**保留且仍支持**，
-  待 FormatPlan 达到能力对等后再收敛删除（零能力损失约束）。
+- 模板化结构重排 (`apply --template <docx>`，按用户提供模板做样式映射)：
+  Rust 引擎暂未覆盖；`apply` / `render` 作为遗留命令仍在 .NET 引擎可用。
+  毕业论文预设已由 RS12 迁到 Rust；逐部件页眉的奇偶 + 首页不同 由 RS12 部分
+  覆盖（thesis 预设里固定 4 部件）。
 - FormatPlan 专用校验器待补；`validate_decision.py` 仍只校验旧 decision。
 - Rust 引擎 `analyze` 鲁棒性：仅在引擎自产 docx 上验过 100% 字段比对；
   野生 Word/WPS 输入未测。

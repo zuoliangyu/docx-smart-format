@@ -7,6 +7,7 @@ mod analyze;
 mod autoformat;
 mod docx;
 mod plan;
+mod presets;
 mod refs;
 
 use std::collections::HashMap;
