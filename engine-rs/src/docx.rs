@@ -164,22 +164,124 @@ fn document_rels(pkg: &Package) -> String {
 }
 
 /// Centered PAGE-field footer. Mirrors .NET NeedsPageNumberFooter.
+/// `left-vertical` switches to a VML/wps dual-track anchored text box at
+/// the binding edge (for landscape pages where page number runs vertically).
 fn footer_part(doc: &PlanDocument) -> Option<String> {
     let v = doc
         .header_footer
         .as_ref()
         .and_then(|hf| hf.page_number.as_deref())
         .map(|s| s.trim().to_ascii_lowercase());
+    let rpr = run_properties(None, doc, None, false);
     match v.as_deref() {
         Some("continuous") | Some("center-page-number") => {
-            let rpr = run_properties(None, doc, None, false);
             Some(format!(
                 r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:ftr xmlns:w="{W_NS}"><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:fldSimple w:instr=" PAGE "><w:r>{rpr}<w:t>1</w:t></w:r></w:fldSimple></w:p></w:ftr>"#
             ))
         }
+        Some("left-vertical") => {
+            // Page-number paragraph carried INSIDE the textbox.
+            let inner_p = format!(
+                r#"<w:p xmlns:w="{W_NS}"><w:pPr><w:jc w:val="center"/></w:pPr><w:fldSimple w:instr=" PAGE "><w:r>{rpr}<w:t>1</w:t></w:r></w:fldSimple></w:p>"#
+            );
+            let textbox = build_vertical_pagenum_textbox(&inner_p);
+            // Host paragraph: hold the run that carries the anchored shape.
+            // Spacing 0/0 / 240 auto matches .NET's default host paragraph.
+            Some(format!(
+                r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:ftr xmlns:w="{W_NS}"><w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r>{textbox}</w:r></w:p></w:ftr>"#
+            ))
+        }
         _ => None,
     }
+}
+
+/// Builds the mc:AlternateContent wps/VML dual track for a vertical
+/// (vert270) page-number text box at the binding edge. Mirrors
+/// .NET DocxRenderer.BuildTextBoxAlternateContentXml with the engine's
+/// default geometry — landscape A4 leftedge defaults.
+fn build_vertical_pagenum_textbox(inner_paragraph_xml: &str) -> String {
+    let pos_x: i64 = 457200;
+    let pos_y: i64 = 1828800;
+    let width: i64 = 457200;
+    let height: i64 = 7772400;
+    let text_direction = "vert270";
+    let relative_from_h = "page";
+    let relative_from_v = "page";
+    let anchor = "ctr";
+    let name = "VerticalTextBox";
+
+    // VML coords are in points = EMU / 12700.
+    let vml_left = pos_x as f64 / 12700.0;
+    let vml_top = pos_y as f64 / 12700.0;
+    let vml_width = width as f64 / 12700.0;
+    let vml_height = height as f64 / 12700.0;
+    let vml_layout_flow = "vertical;mso-layout-flow-alt:bottom-to-top";
+
+    format!(
+        concat!(
+            r#"<mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006""#,
+            r#" xmlns:w="{W_NS}" xmlns:r="{R_NS}" xmlns:wp="{WP_NS}" xmlns:a="{A_NS}""#,
+            r#" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">"#,
+            r#"<mc:Choice Requires="wps">"#,
+            r#"<w:drawing>"#,
+            r#"<wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0""#,
+            r#" relativeHeight="251659264" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1">"#,
+            r#"<wp:simplePos x="0" y="0"/>"#,
+            r#"<wp:positionH relativeFrom="{relative_from_h}"><wp:posOffset>{pos_x}</wp:posOffset></wp:positionH>"#,
+            r#"<wp:positionV relativeFrom="{relative_from_v}"><wp:posOffset>{pos_y}</wp:posOffset></wp:positionV>"#,
+            r#"<wp:extent cx="{width}" cy="{height}"/>"#,
+            r#"<wp:effectExtent l="0" t="0" r="0" b="0"/>"#,
+            r#"<wp:wrapNone/>"#,
+            r#"<wp:docPr id="1" name="{name}"/>"#,
+            r#"<wp:cNvGraphicFramePr/>"#,
+            r#"<a:graphic>"#,
+            r#"<a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">"#,
+            r#"<wps:wsp><wps:cNvSpPr txBox="1"/>"#,
+            r#"<wps:spPr>"#,
+            r#"<a:xfrm><a:off x="0" y="0"/><a:ext cx="{width}" cy="{height}"/></a:xfrm>"#,
+            r#"<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>"#,
+            r#"<a:noFill/><a:ln><a:noFill/></a:ln>"#,
+            r#"</wps:spPr>"#,
+            r#"<wps:txbx><w:txbxContent>{inner_paragraph_xml}</w:txbxContent></wps:txbx>"#,
+            r#"<wps:bodyPr rot="0" spcFirstLastPara="0" vertOverflow="visible" horzOverflow="visible""#,
+            r#" vert="{text_direction}" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720""#,
+            r#" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="{anchor}" anchorCtr="0""#,
+            r#" forceAA="0" compatLnSpc="1"/>"#,
+            r#"</wps:wsp></a:graphicData></a:graphic>"#,
+            r#"</wp:anchor></w:drawing></mc:Choice>"#,
+            r#"<mc:Fallback>"#,
+            r#"<w:pict xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w10="urn:schemas-microsoft-com:office:word">"#,
+            r#"<v:rect id="_x0000_s1026" style="position:absolute;margin-left:{vml_left:.2}pt;"#,
+            r#"margin-top:{vml_top:.2}pt;width:{vml_width:.2}pt;height:{vml_height:.2}pt;"#,
+            r#"z-index:251659264;mso-position-horizontal-relative:{relative_from_h};"#,
+            r#"mso-position-vertical-relative:{relative_from_v}" stroked="f" filled="f">"#,
+            r#"<v:textbox style="layout-flow:{vml_layout_flow}" inset="7.2pt,3.6pt,7.2pt,3.6pt">"#,
+            r#"<w:txbxContent>{inner_paragraph_xml}</w:txbxContent>"#,
+            r#"</v:textbox></v:rect></w:pict>"#,
+            r#"</mc:Fallback></mc:AlternateContent>"#,
+        ),
+        W_NS = W_NS,
+        R_NS = R_NS,
+        WP_NS = WP_NS,
+        A_NS = A_NS,
+        pos_x = pos_x,
+        pos_y = pos_y,
+        width = width,
+        height = height,
+        name = name,
+        relative_from_h = relative_from_h,
+        relative_from_v = relative_from_v,
+        text_direction = text_direction,
+        anchor = anchor,
+        vml_left = vml_left,
+        vml_top = vml_top,
+        vml_width = vml_width,
+        vml_height = vml_height,
+        vml_layout_flow = vml_layout_flow,
+        inner_paragraph_xml = inner_paragraph_xml,
+    )
 }
 
 struct Para {
