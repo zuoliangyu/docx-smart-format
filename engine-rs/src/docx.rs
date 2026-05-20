@@ -420,6 +420,30 @@ fn render_block(
     }
 
     if role == "equation" || block.equation.is_some() {
+        // OMML display math: <m:oMathPara> is a BODY-level element
+        // (sibling of <w:p>), not a child. Putting it inside <w:p>
+        // makes Word fall back to text rendering. Emit as BodyElem::Raw
+        // when xml is provided; the section-break logic will inject a
+        // trailing empty paragraph if a closing section ends here.
+        let eq = block.equation.as_ref();
+        let xml = eq
+            .and_then(|e| e.xml.as_deref())
+            .filter(|s| !s.trim().is_empty());
+        if let Some(x) = xml {
+            let body_xml = if x.contains("<m:oMathPara") {
+                x.to_string()
+            } else {
+                // Caller gave only <m:oMath>; wrap as a centered display
+                // math paragraph.
+                format!(
+                    r#"<m:oMathPara><m:oMathParaPr><m:jc m:val="centerGroup"/></m:oMathParaPr>{}</m:oMathPara>"#,
+                    x
+                )
+            };
+            return vec![BodyElem::Raw(body_xml)];
+        }
+        // Text fallback when no xml: keep wrapping in <w:p> with normal
+        // formatting (autoformat already turns x^2 / x_1 into super/sub).
         return vec![BodyElem::Para(equation_para(doc, block))];
     }
 
