@@ -4,6 +4,7 @@
 //! Legacy `apply`/`render` stay on the .NET engine (zero capability loss).
 
 mod analyze;
+mod autoformat;
 mod docx;
 mod plan;
 

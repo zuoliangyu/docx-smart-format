@@ -13,6 +13,7 @@
 //!        that footer + media share; inline DrawingML picture.
 
 use crate::analyze::SourceBlock;
+use crate::autoformat;
 use crate::plan::{FormatPlan, PlanBlock, PlanDocument, PlanFormat, PlanSection};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Write;
@@ -369,10 +370,7 @@ fn render_block(
     } else if role == "pagenumber" {
         format!(r#"<w:fldSimple w:instr=" PAGE "><w:r>{rpr}<w:t>1</w:t></w:r></w:fldSimple>"#)
     } else {
-        format!(
-            r#"<w:r>{rpr}<w:t xml:space="preserve">{}</w:t></w:r>"#,
-            xml_escape(&text)
-        )
+        render_text_segments(&text, block.format.as_ref(), doc, heading_level, role == "title")
     };
 
     vec![BodyElem::Para(Para { ppr_inner, run })]
@@ -476,14 +474,40 @@ fn image_content_type(ext: &str) -> &'static str {
 }
 
 fn caption_para(doc: &PlanDocument, text: &str) -> Para {
-    let rpr = run_properties(None, doc, None, false);
     Para {
         ppr_inner: r#"<w:jc w:val="center"/>"#.to_string(),
-        run: format!(
-            r#"<w:r>{rpr}<w:t xml:space="preserve">{}</w:t></w:r>"#,
-            xml_escape(text)
-        ),
+        run: render_text_segments(text, None, doc, None, false),
     }
+}
+
+/// Emit one or more <w:r> for a piece of generate-mode text, splitting it
+/// with autoformat (H2O / m^2 / x^2 etc) so subscript/superscript flow
+/// automatically. `base` is the paragraph format applied as-is; each
+/// segment's vertical_align overrides it.
+fn render_text_segments(
+    text: &str,
+    base: Option<&PlanFormat>,
+    doc: &PlanDocument,
+    heading: Option<u8>,
+    is_title: bool,
+) -> String {
+    let mut out = String::new();
+    for seg in autoformat::split(text) {
+        let mut overlay: PlanFormat = base.cloned().unwrap_or_default();
+        if let Some(va) = &seg.vertical_align {
+            overlay.vertical_align = Some(va.clone());
+        }
+        let rpr = run_properties(Some(&overlay), doc, heading, is_title);
+        out.push_str(&format!(
+            r#"<w:r>{rpr}<w:t xml:space="preserve">{}</w:t></w:r>"#,
+            xml_escape(&seg.text)
+        ));
+    }
+    if out.is_empty() {
+        let rpr = run_properties(base, doc, heading, is_title);
+        out.push_str(&format!("<w:r>{rpr}</w:r>"));
+    }
+    out
 }
 
 fn build_table(doc: &PlanDocument, rows: &[Vec<String>]) -> String {
@@ -508,21 +532,21 @@ fn build_table(doc: &PlanDocument, rows: &[Vec<String>]) -> String {
         let is_header = ri == 0 && row_count > 1;
         body.push_str("<w:tr>");
         for cell in row {
-            let rpr = if is_header {
+            let base_fmt = if is_header {
                 let mut f = PlanFormat::default();
                 f.bold = Some(true);
-                run_properties(Some(&f), doc, None, false)
+                Some(f)
             } else {
-                run_properties(None, doc, None, false)
+                None
             };
+            let runs = render_text_segments(cell, base_fmt.as_ref(), doc, None, false);
             let tc_borders = if is_header {
                 r#"<w:tcBorders><w:bottom w:val="single" w:sz="6"/></w:tcBorders>"#
             } else {
                 ""
             };
             body.push_str(&format!(
-                r#"<w:tc><w:tcPr><w:tcW w:type="auto"/>{tc_borders}</w:tcPr><w:p><w:r>{rpr}<w:t xml:space="preserve">{}</w:t></w:r></w:p></w:tc>"#,
-                xml_escape(cell)
+                r#"<w:tc><w:tcPr><w:tcW w:type="auto"/>{tc_borders}</w:tcPr><w:p>{runs}</w:p></w:tc>"#
             ));
         }
         body.push_str("</w:tr>");
