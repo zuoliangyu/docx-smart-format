@@ -20,6 +20,8 @@ docx-smart-engine (Rust) — 测试包
     05-omml-equation.json         4 个真 OMML 公式 (上标/下标/分数/嵌套)
     06-figure.json                图片插入（用 samples/pixel.png）
     07-thesis-preset.json         毕业论文预设 (奇偶页眉 + 中文宋体 + 字号字距)
+    08-template-apply.json        模板化样式应用 (块用 styleId 引用模板里的样式)
+    template.docx                 08 配用的模板 (含 Normal/Heading1-3/Reference 样式)
     pixel.png                     图片样例
     OMML-CHEATSHEET.md            OMML 公式写法速查表
   README.txt                      本文件
@@ -66,7 +68,20 @@ docx-smart-engine (Rust) — 测试包
      文献规范化。修改 thesisUniversity / thesisTitle 字段定制学校与
      论文名。
 
-  6. 其它样例同样替换 --plan 参数即可。
+  6. 模板化样式应用（FormatPlan 块用 styleId 引用模板里定义的样式）：
+
+     .\docx-auto-template-engine.exe build `
+         --plan samples\08-template-apply.json `
+         --template samples\template.docx `
+         --output out-template.docx
+
+     ⚠️ 注意 08 必须配 --template 参数。引擎会把模板 docx 里的
+     word/styles.xml 复制进输出包，让 plan 块里 format.styleId 指向的
+     "Heading1" / "Normal" / "Reference" 等真正能解析到样式定义。
+     没有 --template 时 styleId 只是 dangling 引用，Word 找不到样式
+     → 全部段落显示成默认 12pt 普通字体。
+
+  7. 其它样例同样替换 --plan 参数即可。
 
 
 命令面（唯二命令）

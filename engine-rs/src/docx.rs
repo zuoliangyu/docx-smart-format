@@ -693,7 +693,8 @@ fn render_block(
                             xml_escape(&content)
                         ));
                     }
-                    let mut ppr_inner = paragraph_properties_inner(block.format.as_ref(), doc);
+                    // Reference paragraph isn't a heading.
+                    let mut ppr_inner = paragraph_properties_inner(block.format.as_ref(), doc, None);
                     if !ppr_inner.contains("<w:ind") {
                         ppr_inner.push_str(&format!(
                             r#"<w:ind w:hangingChars="{DEFAULT_HANGING_CHARS}"/>"#
@@ -710,7 +711,7 @@ fn render_block(
         }
     }
 
-    let ppr_inner = paragraph_properties_inner(block.format.as_ref(), doc);
+    let ppr_inner = paragraph_properties_inner(block.format.as_ref(), doc, heading_level);
     let rpr = run_properties(block.format.as_ref(), doc, heading_level, role == "title");
 
     // Overlay with per-run fidelity: emit one <w:r> per source run so the
@@ -1073,7 +1074,11 @@ fn build_table(doc: &PlanDocument, rows: &[Vec<String>]) -> String {
     format!("<w:tbl>{tbl_pr}{body}</w:tbl>")
 }
 
-fn paragraph_properties_inner(fmt: Option<&PlanFormat>, doc: &PlanDocument) -> String {
+fn paragraph_properties_inner(
+    fmt: Option<&PlanFormat>,
+    doc: &PlanDocument,
+    heading_level: Option<u8>,
+) -> String {
     let mut inner = String::new();
 
     // pStyle must precede all other pPr children per OOXML schema.
@@ -1129,6 +1134,15 @@ fn paragraph_properties_inner(fmt: Option<&PlanFormat>, doc: &PlanDocument) -> S
 
     if fmt.and_then(|f| f.page_break_before).unwrap_or(false) {
         inner.push_str("<w:pageBreakBefore/>");
+    }
+
+    // <w:outlineLvl w:val="N"/> (0-indexed). Required for Word to treat
+    // the paragraph as a heading for navigation pane / outline / TOC.
+    // Emit independently of pStyle so headings work even without a
+    // template's styles.xml defining Heading1/2/3.
+    if let Some(n) = heading_level {
+        let lvl = n.saturating_sub(1);
+        inner.push_str(&format!(r#"<w:outlineLvl w:val="{lvl}"/>"#));
     }
 
     inner
